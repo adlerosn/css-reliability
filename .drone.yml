@@ -22,9 +22,9 @@ steps:
     depends_on:
       - copy
     commands:
-      - cat srvconfig/nginx.conf | sed -e 's/{domain}/css-reliability.sfner.com/g' -e 's/{port}/35795/g' -e 's/{path}/\\/var\\/www\\/css_reliability\\/static_root/g' | sudo tee /etc/nginx/sites-available/css-reliability-sfner-com-http.conf > /dev/null
-      - cat srvconfig/nginx-nomedia.conf | sed -e 's/{domain}/test-css-reliability.sfner.com/g' -e 's/{port}/35796/g' | sudo tee /etc/nginx/sites-available/test-css-reliability-sfner-com-http.conf > /dev/null
-      - cat srvconfig/systemd.service | sed -e 's/{name}/css-reliability.sfner.com/g' -e 's/{port}/35795/g' -e 's/{path}/\\/var\\/www\\/css_reliability/g' -e 's/{verb}/serve/g' | sudo tee /etc/systemd/system/css_reliability.service > /dev/null
+      - cat srvconfig/nginx.conf | sed -e 's/{domain}/api-css-reliability.sfner.com/g' -e 's/{port}/35795/g' -e 's/{path}/\\/var\\/www\\/css_reliability\\/static_root/g' | sudo tee /etc/nginx/sites-available/api-css-reliability-sfner-com-http.conf > /dev/null
+      - cat srvconfig/nginx-nomedia.conf | sed -e 's/{domain}/test-api-css-reliability.sfner.com/g' -e 's/{port}/35796/g' | sudo tee /etc/nginx/sites-available/test-api-css-reliability-sfner-com-http.conf > /dev/null
+      - cat srvconfig/systemd.service | sed -e 's/{name}/api-css-reliability.sfner.com/g' -e 's/{port}/35795/g' -e 's/{path}/\\/var\\/www\\/css_reliability/g' -e 's/{verb}/serve/g' | sudo tee /etc/systemd/system/css_reliability.service > /dev/null
 
   - name: restart
     depends_on:
