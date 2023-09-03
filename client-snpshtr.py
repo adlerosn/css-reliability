@@ -116,7 +116,10 @@ def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tupl
 
 def self_update():
     global gather_next_job, run_job
-    # fetch updated script
+    resp = requests.get(UPDURL)
+    resp.raise_for_status()
+    if resp.content != Path('client-snpshtr.py').read_bytes():
+        Path('client-snpshtr.py').write_bytes(resp.content)
     importlib.invalidate_caches()
     selfmodule = importlib.import_module('client-snpshtr')
     importlib.reload(selfmodule)
@@ -146,7 +149,7 @@ def main():
                 self_update()
                 gather_next_job(browsers, resolutions_spec)
             except Exception:
-                pass
+                time.sleep(5)
     finally:
         for browser in browsers:
             browser.close()
