@@ -1,0 +1,36 @@
+kind: pipeline
+type: exec
+name: default
+
+steps:
+  - name: copy
+    environment:
+      SHARED_SOLUTION_KEY:
+        from_secret: shared_solution_key
+    commands:
+      - sudo mkdir -p /var/www/css_reliability
+      - sudo rm -rf /var/www/css_reliability/client-snpshtr.py
+      - sudo rm -rf /var/www/css_reliability/virtual_env
+      - sudo cp server-snpshtr.py /var/www/css_reliability/server-snpshtr.py
+      - sudo cp requirements.txt /var/www/css_reliability/requirements.txt
+      - sudo cp Makefile /var/www/css_reliability/Makefile
+      - sudo make -C /var/www/css_reliability virtual_env
+      - echo $$SHARED_SOLUTION_KEY | sudo tee /var/www/css_reliability/apikey.txt >/dev/null
+      - sudo chown http:http -R /var/www/css_reliability
+
+  - name: configure
+    depends_on:
+      - copy
+    commands:
+      - cat srvconfig/nginx.conf | sed -e 's/{domain}/css-reliability.sfner.com/g' -e 's/{port}/56413/g' -e 's/{path}/\\/var\\/www\\/css_reliability\\/static_root/g' | sudo tee /etc/nginx/sites-available/css-reliability-sfner-com-http.conf > /dev/null
+      - cat srvconfig/nginx-nomedia.conf | sed -e 's/{domain}/test-css-reliability.sfner.com/g' -e 's/{port}/56414/g' | sudo tee /etc/nginx/sites-available/test-css-reliability-sfner-com-http.conf > /dev/null
+      - cat srvconfig/systemd.service | sed -e 's/{name}/css-reliability.sfner.com/g' -e 's/{port}/56413/g' -e 's/{path}/\\/var\\/www\\/css_reliability/g' -e 's/{verb}/serve/g' | sudo tee /etc/systemd/system/css_reliability.service > /dev/null
+
+  - name: restart
+    depends_on:
+      - configure
+    commands:
+      - sudo systemctl daemon-reload
+      - sudo systemctl reload nginx
+      - sudo systemctl enable css_reliability.service
+      - sudo systemctl restart css_reliability.service

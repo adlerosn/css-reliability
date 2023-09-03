@@ -1,0 +1,26 @@
+{
+  "resolutions": [
+    ["VGA", "640x480"],
+    ["SVGA", "800x600"],
+    ["XGA", "1024x768"],
+    ["FHD", "1920x1080"],
+    ["QHD", "2560x1440"],
+    ["UHD", "3840x2160"],
+    ["iPadP", "810x1080"],
+    ["iPadL", "1080x810"],
+    ["S20P", "360x800"],
+    ["S20L", "800x360"],
+    ["S20UltraP", "412x915"],
+    ["S20UltraL", "915x412"],
+    ["iPhone11ProP", "375x812"],
+    ["iPhone11ProL", "812x375"],
+    ["iPhone11ProMaxP", "414x896"],
+    ["iPhone11ProMaxL", "896x414"],
+    ["iPhone13MiniP", "375x812"],
+    ["iPhone13MiniL", "812x375"],
+    ["iPhone13ProMaxP", "428x926"],
+    ["iPhone13ProMaxL", "926x428"],
+    ["kindleFireHDXP", "800x1280"],
+    ["kindleFireHDXL", "1280x800"]
+  ]
+}

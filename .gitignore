@@ -1,0 +1,12 @@
+venv
+.mypy_cache
+*.zip
+*.png
+*.pyc
+*.pyd
+*.log
+baseapi.txt
+apikey.txt
+*.temp
+uptime.json
+jobs

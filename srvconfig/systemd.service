@@ -1,0 +1,15 @@
+[Unit]
+Description={name} service
+After=network.target
+
+[Service]
+Environment=PORT={port}
+User=http
+Group=backup
+ExecStart=/usr/bin/make {verb} -C {path}
+Restart=always
+RestartSec=5s
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+
+import hashlib
+import importlib
+from io import BytesIO
+import json
+from pathlib import Path
+import socket
+import sys
+import traceback
+from typing import Union
+import requests
+from selenium import webdriver
+import time
+import zipfile
+
+WDTP = Union[webdriver.Firefox, webdriver.Chrome,
+             webdriver.Edge, webdriver.Safari]
+
+CLS_OPTIONS = dict(
+    Firefox=webdriver.FirefoxOptions,
+    Chrome=webdriver.ChromeOptions,
+    Edge=webdriver.EdgeOptions,
+    Safari=webdriver.SafariOptions,
+)
+CLS_WEBDRIVER = dict(
+    Firefox=webdriver.Firefox,
+    Chrome=webdriver.Chrome,
+    Edge=webdriver.Edge,
+    Safari=webdriver.Safari,
+)
+
+BASEAPI = Path('baseapi.txt').read_text(encoding='utf-8').strip()
+APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
+UPDURL = Path('updurl.txt').read_text(encoding='utf-8').strip()
+
+
+def run_job(browsers: list[WDTP],
+            resolutions_spec: list[tuple[str, tuple[int, int]]],
+            jobId: int,
+            wait: float,
+            scrolltox: int,
+            scrolltoy: int,
+            preRunJs: str,
+            waitJs: float,
+            url: str):
+    bio = BytesIO()
+    zf = zipfile.ZipFile(
+        bio, mode='w', compression=zipfile.ZIP_DEFLATED, compresslevel=9)
+    for browser in browsers:
+        browser.get(url)
+        browser.execute_script(preRunJs)
+        time.sleep(waitJs)
+        for resolution_name, (resw, resh) in resolutions_spec:
+            browser.set_window_size(resw, resh)
+            browser.execute_script(
+                f'window.scrollTo({scrolltox}, {scrolltoy})')
+            time.sleep(wait)
+            if hasattr(browser, 'get_full_page_screenshot_as_png'):
+                zf.writestr(
+                    f'{browser.name}.{resolution_name}.full.png',
+                    browser.get_full_page_screenshot_as_png()
+                )
+            zf.writestr(
+                f'{browser.name}.{resolution_name}.partial.png',
+                browser.get_screenshot_as_png()
+            )
+        browser.get('about:blank')
+    zf.close()
+    b = bio.getvalue()
+    m = hashlib.sha256()
+    m.update(b)
+    h = m.hexdigest()
+    requests.post(
+        f'{BASEAPI}/job?key={APIKEY}&worker={socket.gethostname()}&jobId={jobId}&sha256={h}',
+        headers={'content-type': 'application/zip',
+                 'content-length': str(len(b))},
+        data=b).raise_for_status()
+    # Path(f'{sys.platform}.{jobId:012d}.zip').write_bytes(bio.getvalue())
+    del zf
+    del bio
+    del b
+
+
+def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tuple[int, int]]]):
+    try:
+        resp = requests.get(
+            f'{BASEAPI}/job/next?key={APIKEY}&worker={socket.gethostname()}')
+    except requests.exceptions.ConnectionError:
+        time.sleep(5)
+        return
+    if resp.status_code == 404:
+        time.sleep(10)
+    elif resp.status_code == 200:
+        job = resp.json()
+        run_job(
+            browsers,
+            resolutions_spec,
+            job['jobId'],
+            job['wait'],
+            job['scrolltox'],
+            job['scrolltoy'],
+            job['preRunJs'],
+            job['waitJs'],
+            job['url'],
+        )
+    else:
+        try:
+            resp.raise_for_status()
+            raise ValueError(f'Unknown status code: {resp.status_code}')
+        except Exception:
+            print(traceback.format_exc())
+        time.sleep(10)
+
+
+def self_update():
+    global gather_next_job, run_job
+    # fetch updated script
+    importlib.invalidate_caches()
+    selfmodule = importlib.import_module('client-snpshtr')
+    importlib.reload(selfmodule)
+    gather_next_job = selfmodule.gather_next_job
+    run_job = selfmodule.run_job
+
+
+def main():
+    browsers_spec = json.loads(Path(f'browsers.{sys.platform}.json').read_text(
+        encoding='utf-8'))['browsers']
+    resolutions_spec = [
+        (str(n), (int(v.split('x')[0]), int(v.split('x')[1])))
+        for n, v in json.loads(Path('resolutions.json').read_text(
+            encoding='utf-8'))['resolutions']]
+    browsers: WDTP = list()
+    try:
+        for browser_spec in browsers_spec:
+            opt = CLS_OPTIONS[browser_spec['type']]()
+            for arg in browser_spec['arguments']:
+                opt.add_argument(arg)
+            browser = CLS_WEBDRIVER[browser_spec['type']](opt)
+            browsers.append(browser)
+        for browser in browsers:
+            browser.get('about:blank')
+        while True:
+            try:
+                self_update()
+                gather_next_job(browsers, resolutions_spec)
+            except Exception:
+                pass
+    finally:
+        for browser in browsers:
+            browser.close()
+
+
+if __name__ == '__main__':
+    main()
