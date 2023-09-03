@@ -119,7 +119,8 @@ def self_update():
     resp = requests.get(UPDURL)
     resp.raise_for_status()
     if resp.content != Path('client-snpshtr.py').read_bytes():
-        Path('client-snpshtr.py').write_bytes(resp.content)
+        if not Path('.git').exists():
+            Path('client-snpshtr.py').write_bytes(resp.content)
     importlib.invalidate_caches()
     selfmodule = importlib.import_module('client-snpshtr')
     importlib.reload(selfmodule)
