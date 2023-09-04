@@ -22,13 +22,13 @@ CLS_OPTIONS = dict(
     Firefox=webdriver.FirefoxOptions,
     Chrome=webdriver.ChromeOptions,
     Edge=webdriver.EdgeOptions,
-    **({} if sys.platform == 'darwin' else dict(Safari=webdriver.SafariOptions)),
+    Safari=getattr(webdriver, 'SafariOptions', webdriver.ChromeOptions),
 )
 CLS_WEBDRIVER = dict(
     Firefox=webdriver.Firefox,
     Chrome=webdriver.Chrome,
     Edge=webdriver.Edge,
-    **({} if sys.platform == 'darwin' else dict(Safari=webdriver.Safari)),
+    Safari=getattr(webdriver, 'Safari', webdriver.Chrome),
 )
 
 BASEAPI = Path('baseapi.txt').read_text(encoding='utf-8').strip()
