@@ -153,7 +153,7 @@ def main():
                 print(traceback.format_exc())
         for browser in browsers:
             browser.get('about:blank')
-        while True:
+        while len(browsers):
             try:
                 self_update()
                 gather_next_job(browsers, resolutions_spec)
