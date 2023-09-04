@@ -89,11 +89,11 @@ def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tupl
         resp = requests.get(
             f'{BASEAPI}/job/next?key={APIKEY}&worker={socket.gethostname()}')
     except requests.exceptions.ConnectionError:
-        time.sleep(5)
+        time.sleep(10)
         return
     if resp.status_code == 404:
         print('[INFO] No new job')
-        time.sleep(10)
+        time.sleep(60)
     elif resp.status_code == 200:
         job = resp.json()
         print(f'[INFO] Running job {job["jobId"]}')
@@ -114,7 +114,7 @@ def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tupl
             raise ValueError(f'Unknown status code: {resp.status_code}')
         except Exception:
             print(traceback.format_exc())
-        time.sleep(10)
+        time.sleep(30)
 
 
 def self_update():
