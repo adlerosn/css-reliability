@@ -156,6 +156,7 @@ def main():
                 self_update()
                 gather_next_job(browsers, resolutions_spec)
             except Exception:
+                print(traceback.format_exc())
                 time.sleep(5)
     finally:
         for browser in browsers:
