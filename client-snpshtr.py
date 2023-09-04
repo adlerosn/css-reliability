@@ -59,11 +59,11 @@ def run_job(browsers: list[WDTP],
             time.sleep(wait)
             if hasattr(browser, 'get_full_page_screenshot_as_png'):
                 zf.writestr(
-                    f'{browser.name}.{resolution_name}.full.png',
+                    f'{sys.platform}.{socket.gethostname()}.{browser.name}.{resolution_name}.full.png',
                     browser.get_full_page_screenshot_as_png()
                 )
             zf.writestr(
-                f'{browser.name}.{resolution_name}.partial.png',
+                f'{sys.platform}.{socket.gethostname()}.{browser.name}.{resolution_name}.partial.png',
                 browser.get_screenshot_as_png()
             )
         browser.get('about:blank')
@@ -108,6 +108,7 @@ def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tupl
             job['waitJs'],
             job['url'],
         )
+        time.sleep(20)
     else:
         try:
             resp.raise_for_status()
