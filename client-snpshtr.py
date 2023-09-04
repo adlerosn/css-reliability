@@ -148,7 +148,9 @@ def main():
                 browser = CLS_WEBDRIVER[browser_spec['type']](opt)
                 browsers.append(browser)
             except Exception:
-                pass
+                print(
+                    f'[ERROR] Could not initialize browser {browser_spec["type"]}')
+                print(traceback.format_exc())
         for browser in browsers:
             browser.get('about:blank')
         while True:
