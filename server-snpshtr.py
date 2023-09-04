@@ -69,10 +69,12 @@ def job_next_get():
     return jsonify(dict(
         jobId=1,
         wait=0,
+        scrolltoJs='',
         scrolltox=0,
         scrolltoy=0,
         preRunJs='',
         waitJs=0,
+        checkReadyJs='return 0;',
         url='https://bff.furmeet.app',
     ))
 

@@ -40,10 +40,12 @@ def run_job(browsers: list[WDTP],
             resolutions_spec: list[tuple[str, tuple[int, int]]],
             jobId: int,
             wait: float,
+            scrolltoJs: str,
             scrolltox: int,
             scrolltoy: int,
             preRunJs: str,
             waitJs: float,
+            checkReadyJs: str,
             url: str):
     bio = BytesIO()
     zf = zipfile.ZipFile(
@@ -52,10 +54,16 @@ def run_job(browsers: list[WDTP],
         browser.get(url)
         browser.execute_script(preRunJs)
         time.sleep(waitJs)
+        if checkReadyJs:
+            while (waitReady := browser.execute_script(checkReadyJs)) > 0:
+                time.sleep(waitReady)
         for resolution_name, (resw, resh) in resolutions_spec:
             browser.set_window_size(resw, resh)
-            browser.execute_script(
-                f'window.scrollTo({scrolltox}, {scrolltoy})')
+            if scrolltoJs:
+                browser.execute_script(scrolltoJs)
+            else:
+                browser.execute_script(
+                    f'window.scrollTo({scrolltox}, {scrolltoy})')
             time.sleep(wait)
             if hasattr(browser, 'get_full_page_screenshot_as_png'):
                 zf.writestr(
@@ -102,10 +110,12 @@ def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tupl
             resolutions_spec,
             job['jobId'],
             job['wait'],
+            job['scrolltoJs'],
             job['scrolltox'],
             job['scrolltoy'],
             job['preRunJs'],
             job['waitJs'],
+            job['checkReadyJs'],
             job['url'],
         )
         time.sleep(20)
