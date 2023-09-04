@@ -78,7 +78,7 @@ def run_job(browsers: list[WDTP],
                  'content-length': str(len(b))},
         data=b).raise_for_status()
     # Path(f'{sys.platform}.{jobId:012d}.zip').write_bytes(bio.getvalue())
-    print(f'[INFO] Finished job {jobId} successfully')
+    print(f'[INFO] Uploaded results for job {jobId} successfully')
     del zf
     del bio
     del b
