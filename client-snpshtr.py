@@ -78,6 +78,7 @@ def run_job(browsers: list[WDTP],
                  'content-length': str(len(b))},
         data=b).raise_for_status()
     # Path(f'{sys.platform}.{jobId:012d}.zip').write_bytes(bio.getvalue())
+    print(f'[INFO] Finished job {jobId} successfully')
     del zf
     del bio
     del b
@@ -91,9 +92,11 @@ def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tupl
         time.sleep(5)
         return
     if resp.status_code == 404:
+        print('[INFO] No new job')
         time.sleep(10)
     elif resp.status_code == 200:
         job = resp.json()
+        print(f'[INFO] Running job {job["jobId"]}')
         run_job(
             browsers,
             resolutions_spec,
