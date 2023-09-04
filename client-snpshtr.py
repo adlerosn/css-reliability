@@ -144,8 +144,11 @@ def main():
             opt = CLS_OPTIONS[browser_spec['type']]()
             for arg in browser_spec['arguments']:
                 opt.add_argument(arg)
-            browser = CLS_WEBDRIVER[browser_spec['type']](opt)
-            browsers.append(browser)
+            try:
+                browser = CLS_WEBDRIVER[browser_spec['type']](opt)
+                browsers.append(browser)
+            except Exception:
+                pass
         for browser in browsers:
             browser.get('about:blank')
         while True:
