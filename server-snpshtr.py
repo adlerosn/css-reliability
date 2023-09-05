@@ -186,12 +186,12 @@ def job_get():
     return send_file(JOB_DB)
 
 
-@app.route('/job/submissions', methods=['HEAD', 'OPTIONS', 'GET'])
-def job_submissions_get():
+@app.route('/job/submission', methods=['HEAD', 'OPTIONS', 'GET'])
+def job_submission_get():
     jobs = json.loads(JOB_DB.read_text(encoding='utf-8'))
     uptimes = json.loads(UPTIME_DB.read_text(encoding='utf-8'))
     for job in jobs:
-        job['workers']
+        job['workers'] = dict()
         for worker in uptimes:
             workerzip = JOBS_PATH.joinpath(f'{job["jobId"]:020d}/{worker}.zip')
             job['workers'][worker] = None if not workerzip.exists() else str(workerzip)
