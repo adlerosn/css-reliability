@@ -181,6 +181,16 @@ def job_post():
     return jsonify('OK')
 
 
+@app.route('/job', methods=['GET'])
+def job_get():
+    return send_file(JOB_DB)
+
+
+@app.route('/uptime', methods=['GET'])
+def uptime_get():
+    return send_file(UPTIME_DB)
+
+
 @app.route('/cron', methods=['GET'])
 def cron():
     return send_file(CRON_DB)
