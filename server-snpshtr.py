@@ -204,7 +204,8 @@ def cron_form():
                     url=request.form['url'].strip(),
                     hours=float(request.form['hours'].strip()),
                     historySize=float(request.form['historySize'].strip()),
-                    lastScheduledSec=time.time(),
+                    lastScheduledSec=time.time()-3600 *
+                    float(request.form['hours'].strip()),
                     preRunJs=request.form['preRunJs'].strip(),
                     wait=float(request.form['wait'].strip()),
                     scrolltoJs=request.form['scrolltoJs'].strip(),
