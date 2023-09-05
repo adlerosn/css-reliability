@@ -4,13 +4,16 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
+from collections import defaultdict
 import hashlib
 import json
 from pathlib import Path
 
 import datetime
+import shutil
 import time
 import traceback
+from typing import Any
 from uuid import uuid4
 
 from flask import Flask, make_response, render_template, request, send_file, jsonify, redirect
@@ -30,6 +33,10 @@ if not ID_DB.exists():
 CRON_DB = Path('crons.json')
 if not CRON_DB.exists():
     CRON_DB.write_bytes(b'[]')
+
+JOB_DB = Path('jobs.json')
+if not JOB_DB.exists():
+    JOB_DB.write_bytes(b'[]')
 
 JOBS_PATH = Path('jobs')
 
@@ -90,6 +97,36 @@ def index():
     return 'Nothing to see here'
 
 
+def get_updated_job_list() -> list[dict[str, Any]]:
+    tm = time.time()
+    crons: list[dict[str, Any]] = json.loads(
+        CRON_DB.read_text(encoding='utf-8'))
+    jobs: list[dict[str, Any]] = json.loads(JOB_DB.read_text(encoding='utf-8'))
+    pendingCrons: list[dict[str, Any]] = (
+        [*filter(lambda c: (tm-c['hours']*3600) > c['lastScheduledSec'], crons)])
+    for pendingCron in pendingCrons:
+        pendingCron['lastScheduledSec'] = tm
+        jobs.append(dict(jobId=next_id('job'), **pendingCron))
+    if len(pendingCrons):
+        cronId2historySize: dict[int, int] = dict(
+            map(lambda c: (c['cronId'], c['historySize']), crons))
+        cronId2jobpos: dict[int, list[int]] = defaultdict(list)
+        for i, job in enumerate(jobs):
+            cronId2jobpos[job['cronId']].append(i)
+        toDiscardPos: list[int] = list()
+        for cronId, jobspos in cronId2jobpos.items():
+            toDiscardPos += jobspos[:-cronId2historySize[cronId]]
+        toDiscardPos.sort()
+        toDiscardPos.reverse()
+        for pos in toDiscardPos:
+            job = jobs.pop(pos)
+            job_path = JOBS_PATH.joinpath(f'{job["jobId"]:020d}')
+            shutil.rmtree(job_path, ignore_errors=True)
+        TempFile.save_utf8(CRON_DB, json.dumps(crons))
+        TempFile.save_utf8(JOB_DB, json.dumps(jobs))
+    return jobs
+
+
 def worker_lastseen_update(name: str):
     namestrip = name.strip()
     if len(namestrip) > 0:
@@ -100,6 +137,9 @@ def worker_lastseen_update(name: str):
 
 
 def worker_get_next_job(worker: str) -> dict | None:
+    for job in get_updated_job_list():
+        if not JOBS_PATH.joinpath(f'{job["jobId"]:020d}/{worker}.zip').exists():
+            return job
     return None
 
 

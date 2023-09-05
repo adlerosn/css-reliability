@@ -10,5 +10,6 @@ apikey.txt
 *.temp
 uptime.json
 crons.json
+jobs.json
 ids.json
 jobs
