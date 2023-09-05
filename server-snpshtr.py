@@ -166,7 +166,10 @@ def job_post():
     if worker.strip() == '':
         raise Exception('Unknown worker')
     worker_lastseen_update(worker)
+    next_job = worker_get_next_job(worker)
     jobId = int(request.args.get('jobId', '0'))
+    if next_job['jobId'] != jobId:
+        raise ValueError('Wrong job')
     hashed = request.args.get('sha256', '')
     zfb = request.data
     m = hashlib.sha256()
@@ -181,6 +184,18 @@ def job_post():
 @app.route('/job', methods=['HEAD', 'OPTIONS', 'GET'])
 def job_get():
     return send_file(JOB_DB)
+
+
+@app.route('/job/submissions', methods=['HEAD', 'OPTIONS', 'GET'])
+def job_submissions_get():
+    jobs = json.loads(JOB_DB.read_text(encoding='utf-8'))
+    uptimes = json.loads(UPTIME_DB.read_text(encoding='utf-8'))
+    for job in jobs:
+        job['workers']
+        for worker in uptimes:
+            workerzip = JOBS_PATH.joinpath(f'{job["jobId"]:020d}/{worker}.zip')
+            job['workers'][worker] = None if not workerzip.exists() else str(workerzip)
+    return jsonify(jobs)
 
 
 @app.route('/uptime', methods=['HEAD', 'OPTIONS', 'GET'])
