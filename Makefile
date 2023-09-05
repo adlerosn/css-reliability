@@ -18,4 +18,4 @@ all: virtual_env
 
 devserver: virtual_env
 	make all
-	. virtual_env/bin/activate; FLASK_ENV=development virtual_env/bin/flask -A server-snpshtr:app run --host=0.0.0.0 --port=8088 --reload
+	. virtual_env/bin/activate; FLASK_ENV=development FLASK_DEBUG=1 virtual_env/bin/flask -A server-snpshtr:app run --host=0.0.0.0 --port=8088 --reload

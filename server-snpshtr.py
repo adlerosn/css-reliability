@@ -13,7 +13,7 @@ import time
 import traceback
 from uuid import uuid4
 
-from flask import Flask, make_response, render_template, request, send_file, jsonify
+from flask import Flask, make_response, render_template, request, send_file, jsonify, redirect
 
 APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
 
@@ -23,11 +23,30 @@ UPTIME_DB = Path('uptime.json')
 if not UPTIME_DB.exists():
     UPTIME_DB.write_bytes(b'{}')
 
+ID_DB = Path('ids.json')
+if not ID_DB.exists():
+    ID_DB.write_bytes(b'{}')
+
+CRON_DB = Path('crons.json')
+if not CRON_DB.exists():
+    CRON_DB.write_bytes(b'[]')
+
 JOBS_PATH = Path('jobs')
 
 for x in Path('.').glob('*.temp'):
     x.unlink()
     del x
+
+
+JOB_DEFAULTS = dict(
+    wait=0,
+    scrolltoJs='',
+    scrolltox=0,
+    scrolltoy=0,
+    preRunJs='',
+    waitJs=0,
+    checkReadyJs='',
+)
 
 
 class TempFile:
@@ -42,6 +61,29 @@ class TempFile:
         if self.file.exists():
             self.file.unlink()
 
+    @classmethod
+    def save_bytes(cls, dest: Path, b: bytes):
+        with cls('.') as f:
+            f.write_bytes(b)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            f.rename(dest)
+
+    @classmethod
+    def save_utf8(cls, dest: Path, s: str):
+        with cls('.') as f:
+            f.write_text(s, encoding='utf-8')
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            f.rename(dest)
+
+
+def next_id(name: str) -> int:
+    ids = json.loads(ID_DB.read_text(encoding='utf-8'))
+    if name not in ids:
+        ids[name] = 0
+    ids[name] += 1
+    TempFile.save_utf8(ID_DB, json.dumps(ids))
+    return ids[name]
+
 
 @app.route('/', methods=['HEAD', 'OPTIONS', 'GET'])
 def index():
@@ -51,12 +93,14 @@ def index():
 def worker_lastseen_update(name: str):
     namestrip = name.strip()
     if len(namestrip) > 0:
-        with TempFile('.') as f:
-            uptimes: dict[str, float] = json.loads(
-                UPTIME_DB.read_text(encoding='utf-8'))
-            uptimes[namestrip] = time.time()
-            f.write_text(json.dumps(uptimes))
-            f.rename(UPTIME_DB)
+        uptimes: dict[str, float] = json.loads(
+            UPTIME_DB.read_text(encoding='utf-8'))
+        uptimes[namestrip] = time.time()
+        TempFile.save_utf8(UPTIME_DB, json.dumps(uptimes))
+
+
+def worker_get_next_job(worker: str) -> dict | None:
+    return None
 
 
 @app.route('/job/next', methods=['GET'])
@@ -65,18 +109,14 @@ def job_next_get():
         resp = make_response('wrong value for GET parameter: key')
         resp.status_code = 404
         return resp
-    worker_lastseen_update(request.args.get('worker', ''))
-    return jsonify(dict(
-        jobId=1,
-        wait=0,
-        scrolltoJs='',
-        scrolltox=0,
-        scrolltoy=0,
-        preRunJs='',
-        waitJs=0,
-        checkReadyJs='return 0;',
-        url='https://bff.furmeet.app',
-    ))
+    worker = request.args.get('worker', '')
+    worker_lastseen_update(worker)
+    next_job = worker_get_next_job(worker)
+    if next_job is None:
+        resp = make_response('no new job')
+        resp.status_code = 404
+        return resp
+    return jsonify({**JOB_DEFAULTS, **next_job})
 
 
 @app.route('/job', methods=['POST'])
@@ -97,9 +137,50 @@ def job_post():
     h = m.hexdigest()
     if h != hashed:
         raise ValueError('Sent data was not received right')
-    with TempFile('.') as f:
-        f.write_bytes(zfb)
-        dest = JOBS_PATH.joinpath(f'{jobId:020d}/{worker}.zip')
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        f.rename(dest)
+    TempFile.save_bytes(JOBS_PATH.joinpath(f'{jobId:020d}/{worker}.zip'), zfb)
     return jsonify('OK')
+
+
+@app.route('/cron', methods=['GET'])
+def cron():
+    return send_file(CRON_DB)
+
+
+@app.route('/cron/form', methods=['GET', 'POST'])
+def cron_form():
+    if request.method.upper() == 'GET':
+        if request.args.get('apikey', '').strip() and APIKEY != request.args.get('apikey', '').strip():
+            return redirect('/cron/form')
+        return send_file(Path('cronform.html'))
+    elif request.method.upper() == 'POST':
+        if APIKEY != request.form.get('apikey', '').strip():
+            return redirect('/cron/form')
+        elif request.form['action'] == 'add':
+            cronId = next_id('cron')
+            cron = {
+                **JOB_DEFAULTS,
+                **dict(
+                    cronId=cronId,
+                    url=request.form['url'].strip(),
+                    hours=float(request.form['hours'].strip()),
+                    historySize=float(request.form['historySize'].strip()),
+                    lastScheduledSec=time.time(),
+                    preRunJs=request.form['preRunJs'].strip(),
+                    wait=float(request.form['wait'].strip()),
+                    scrolltoJs=request.form['scrolltoJs'].strip(),
+                    scrolltox=float(request.form['scrolltox'].strip()),
+                    scrolltoy=float(request.form['scrolltoy'].strip()),
+                    checkReadyJs=request.form['checkReadyJs'].strip(),
+                    waitJs=float(request.form['waitJs'].strip()),
+                )
+            }
+            crons = json.loads(CRON_DB.read_text(encoding='utf-8'))
+            crons.append(cron)
+            TempFile.save_utf8(CRON_DB, json.dumps(crons))
+            return redirect('/cron/form?message=added%20successfully&apikey=' + request.form['apikey'])
+        elif request.form['action'] == 'delete':
+            cronId = int(request.form['cronId'].strip())
+            crons = json.loads(CRON_DB.read_text(encoding='utf-8'))
+            crons = [*filter(lambda c: c['cronId'] != cronId, crons)]
+            TempFile.save_utf8(CRON_DB, json.dumps(crons))
+            return redirect('/cron/form?message=deleted%20successfully&apikey=' + request.form['apikey'])

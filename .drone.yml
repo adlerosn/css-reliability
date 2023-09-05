@@ -10,11 +10,14 @@ steps:
     commands:
       - sudo mkdir -p /var/www/css_reliability
       - sudo rm -rf /var/www/css_reliability/client-snpshtr.py
-      - sudo rm -rf /var/www/css_reliability/virtual_env
+      - sudo mkdir -p /var/www/css_reliability/virtual_env
+      - sudo mv /var/www/css_reliability/virtual_env /var/www/css_reliability/virtual_env_
       - sudo cp server-snpshtr.py /var/www/css_reliability/server-snpshtr.py
+      - sudo cp cronform.html /var/www/css_reliability/cronform.html
       - sudo cp requirements.txt /var/www/css_reliability/requirements.txt
       - sudo cp Makefile /var/www/css_reliability/Makefile
       - sudo make -C /var/www/css_reliability virtual_env
+      - sudo rm -rf /var/www/css_reliability/virtual_env_
       - echo $$SHARED_SOLUTION_KEY | sudo tee /var/www/css_reliability/apikey.txt >/dev/null
       - sudo chown http:http -R /var/www/css_reliability
 

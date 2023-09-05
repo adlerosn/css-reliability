@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Manage cron</title>
+  </head>
+  <body>
+    <h1>Manage cron</h1>
+    <h2>Delete cron</h2>
+    <form action="/cron/form" method="get">
+      <label>API Key</label>
+      <input
+        name="apikey"
+        type="text"
+        placeholder="c552df8e-5b26-4ab8-b09a-32c63db88d58"
+        style="display: block; width: calc(100% - 0.5rem)"
+        required
+      />
+      <button type="submit">Load</button>
+    </form>
+    <h2>Add cron</h2>
+    <span id="message"></span>
+    <form action="/cron/form" method="post">
+      <input name="action" value="add" type="hidden" />
+      <label>API Key</label>
+      <input
+        name="apikey"
+        type="text"
+        placeholder="d75b5221-dbca-4b54-9703-ae12e2504859"
+        style="display: block; width: calc(100% - 0.5rem)"
+        required
+      />
+      <label>Frequency (hours)</label>
+      <input
+        name="hours"
+        type="number"
+        value="1"
+        step="0.25"
+        min="0.25"
+        max="8760"
+        style="display: block; width: calc(100% - 0.5rem)"
+        required
+      />
+      <label>History size (in samples)</label>
+      <input
+        name="historySize"
+        type="number"
+        value="5"
+        step="1"
+        min="1"
+        max="10"
+        style="display: block; width: calc(100% - 0.5rem)"
+        required
+      />
+      <label>URL</label>
+      <input
+        name="url"
+        type="url"
+        placeholder="https://example.com"
+        style="display: block; width: calc(100% - 0.5rem)"
+        required
+      />
+      <label>Pre-run JS</label>
+      <textarea
+        name="preRunJs"
+        type="text"
+        value=""
+        placeholder="
+        /**
+         * Runs this before page loads
+         * @return {void}
+         */"
+        rows="6"
+        style="display: block; width: calc(100% - 0.5rem); resize: vertical"
+      ></textarea>
+      <label>Post-resize wait</label>
+      <input
+        name="wait"
+        type="number"
+        value="0"
+        step="0.01"
+        style="display: block; width: calc(100% - 0.5rem)"
+      />
+      <label>Post-resize scroll-to JS</label>
+      <textarea
+        name="scrolltoJs"
+        type="text"
+        value=""
+        placeholder="
+        /**
+         * Insert your own JS here to be run after resizing the window.
+         * Ensure post-resize wait will be enough.
+         * If empty, fill 'scroll-to X' and 'scroll-to Y' which, by default, take to the top of the screen.
+         * @return {void}
+         */"
+        rows="8"
+        style="display: block; width: calc(100% - 0.5rem); resize: vertical"
+      ></textarea>
+      <label>Post-resize scroll-to X</label>
+      <input
+        name="scrolltox"
+        type="number"
+        value="0"
+        style="display: block; width: calc(100% - 0.5rem)"
+      />
+      <label>Post-resize scroll-to Y</label>
+      <input
+        name="scrolltoy"
+        type="number"
+        value="0"
+        style="display: block; width: calc(100% - 0.5rem)"
+      />
+      <label>Pre-run waiter JS</label>
+      <textarea
+        name="checkReadyJs"
+        type="text"
+        value=""
+        placeholder="
+        /**
+         * If empty, 'Pre-run wait' will be waited. If filled, 'Pre-run wait' will have no effect.
+         * Insert your own JS here to be run after resizing the window and returns the seconds to wait.
+         * @return {number} the greater than zero, the number seconds until this will be re-run; otherwise, will proceeed to screenshotting
+         */"
+        rows="7"
+        style="display: block; width: calc(100% - 0.5rem); resize: vertical"
+      ></textarea>
+      <label>Pre-run wait</label>
+      <input
+        name="waitJs"
+        type="number"
+        value="0"
+        step="0.01"
+        style="display: block; width: calc(100% - 0.5rem)"
+      />
+      <button type="submit">Add</button>
+    </form>
+    <script defer>
+      let queryArgs = Object.fromEntries(
+        window.location.search
+          .substring(1)
+          .split("&")
+          .map((x) => [
+            decodeURIComponent(x.split("=")[0]),
+            decodeURIComponent(x.split("=")[1]),
+          ])
+      );
+      message.innerText = queryArgs.message ?? "";
+      [...document.querySelectorAll("input[name=apikey]")].forEach(
+        (x) => (x.value = queryArgs.apikey ?? "")
+      );
+      if (true) {
+        let cronform = document.querySelector("form[method=get]");
+        let cronlist = document.createElement("ul");
+        cronform.parentElement.insertBefore(cronlist, cronform);
+        if (queryArgs.apikey ?? "") {
+          cronform.remove();
+        }
+        fetch("/cron").then((resp) => {
+          if (resp.ok) {
+            resp.json().then((obj) => {
+              for (let item of obj) {
+                let li = document.createElement("li");
+                let dl = document.createElement("dl");
+                Object.entries(item)
+                  .sort((a, b) => a[0] > b[0])
+                  .forEach(([k, v]) => {
+                    let dt = document.createElement("dt");
+                    let dd = document.createElement("dd");
+                    dt.appendChild(document.createTextNode(k));
+                    dd.appendChild(document.createTextNode(JSON.stringify(v)));
+                    dl.appendChild(dt);
+                    dl.appendChild(dd);
+                  });
+                li.appendChild(dl);
+                let delform = document.createElement("form");
+                delform.method = "post";
+                delform.action = "/cron/form";
+                let inpcronid = document.createElement("input");
+                let inpapikey = document.createElement("input");
+                let inpaction = document.createElement("input");
+                inpcronid.name = "cronId";
+                inpcronid.value = item.cronId;
+                inpcronid.type = "hidden";
+                inpapikey.name = "apikey";
+                inpapikey.value = queryArgs.apikey;
+                inpapikey.type = "hidden";
+                inpaction.name = "action";
+                inpaction.value = "delete";
+                inpaction.type = "hidden";
+                delform.appendChild(inpcronid);
+                delform.appendChild(inpapikey);
+                delform.appendChild(inpaction);
+                let actionbtn = document.createElement("button");
+                actionbtn.appendChild(document.createTextNode("Delete"));
+                delform.appendChild(actionbtn);
+                if (queryArgs.apikey ?? "") {
+                  li.appendChild(delform);
+                }
+                cronlist.appendChild(li);
+              }
+            });
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

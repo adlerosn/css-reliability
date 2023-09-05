@@ -9,4 +9,6 @@ baseapi.txt
 apikey.txt
 *.temp
 uptime.json
+crons.json
+ids.json
 jobs
