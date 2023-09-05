@@ -1,26 +1,23 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-#!/usr/bin/env python3
-# -*- encoding: utf-8 -*-
-
 from collections import defaultdict
 import hashlib
 import json
 from pathlib import Path
+from flask_cors import CORS
 
-import datetime
 import shutil
 import time
-import traceback
 from typing import Any
 from uuid import uuid4
 
-from flask import Flask, make_response, render_template, request, send_file, jsonify, redirect
+from flask import Flask, make_response, request, send_file, jsonify, redirect
 
 APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
 
 app = Flask(__name__, instance_relative_config=True)
+CORS(app)
 
 UPTIME_DB = Path('uptime.json')
 if not UPTIME_DB.exists():
@@ -143,7 +140,7 @@ def worker_get_next_job(worker: str) -> dict | None:
     return None
 
 
-@app.route('/job/next', methods=['GET'])
+@app.route('/job/next', methods=['HEAD', 'OPTIONS', 'GET'])
 def job_next_get():
     if APIKEY != request.args.get('key', '').strip():
         resp = make_response('wrong value for GET parameter: key')
@@ -181,57 +178,59 @@ def job_post():
     return jsonify('OK')
 
 
-@app.route('/job', methods=['GET'])
+@app.route('/job', methods=['HEAD', 'OPTIONS', 'GET'])
 def job_get():
     return send_file(JOB_DB)
 
 
-@app.route('/uptime', methods=['GET'])
+@app.route('/uptime', methods=['HEAD', 'OPTIONS', 'GET'])
 def uptime_get():
     return send_file(UPTIME_DB)
 
 
-@app.route('/cron', methods=['GET'])
+@app.route('/cron', methods=['HEAD', 'OPTIONS', 'GET'])
 def cron():
     return send_file(CRON_DB)
 
 
-@app.route('/cron/form', methods=['GET', 'POST'])
-def cron_form():
-    if request.method.upper() == 'GET':
-        if request.args.get('apikey', '').strip() and APIKEY != request.args.get('apikey', '').strip():
-            return redirect('/cron/form')
-        return send_file(Path('cronform.html'))
-    elif request.method.upper() == 'POST':
-        if APIKEY != request.form.get('apikey', '').strip():
-            return redirect('/cron/form')
-        elif request.form['action'] == 'add':
-            cronId = next_id('cron')
-            cron = {
-                **JOB_DEFAULTS,
-                **dict(
-                    cronId=cronId,
-                    url=request.form['url'].strip(),
-                    hours=float(request.form['hours'].strip()),
-                    historySize=float(request.form['historySize'].strip()),
-                    lastScheduledSec=time.time()-3600 *
-                    float(request.form['hours'].strip()),
-                    preRunJs=request.form['preRunJs'].strip(),
-                    wait=float(request.form['wait'].strip()),
-                    scrolltoJs=request.form['scrolltoJs'].strip(),
-                    scrolltox=float(request.form['scrolltox'].strip()),
-                    scrolltoy=float(request.form['scrolltoy'].strip()),
-                    checkReadyJs=request.form['checkReadyJs'].strip(),
-                    waitJs=float(request.form['waitJs'].strip()),
-                )
-            }
-            crons = json.loads(CRON_DB.read_text(encoding='utf-8'))
-            crons.append(cron)
-            TempFile.save_utf8(CRON_DB, json.dumps(crons))
-            return redirect('/cron/form?message=added%20successfully&apikey=' + request.form['apikey'])
-        elif request.form['action'] == 'delete':
-            cronId = int(request.form['cronId'].strip())
-            crons = json.loads(CRON_DB.read_text(encoding='utf-8'))
-            crons = [*filter(lambda c: c['cronId'] != cronId, crons)]
-            TempFile.save_utf8(CRON_DB, json.dumps(crons))
-            return redirect('/cron/form?message=deleted%20successfully&apikey=' + request.form['apikey'])
+@app.route('/cron/form', methods=['HEAD', 'OPTIONS', 'GET'])
+def cron_form_get():
+    if request.args.get('apikey', '').strip() and APIKEY != request.args.get('apikey', '').strip():
+        return redirect('/cron/form')
+    return send_file(Path('cronform.html'))
+
+
+@app.route('/cron/form', methods=['POST'])
+def cron_form_post():
+    if APIKEY != request.form.get('apikey', '').strip():
+        return redirect('/cron/form')
+    elif request.form['action'] == 'add':
+        cronId = next_id('cron')
+        cron = {
+            **JOB_DEFAULTS,
+            **dict(
+                cronId=cronId,
+                url=request.form['url'].strip(),
+                hours=float(request.form['hours'].strip()),
+                historySize=float(request.form['historySize'].strip()),
+                lastScheduledSec=time.time()-3600 *
+                float(request.form['hours'].strip()),
+                preRunJs=request.form['preRunJs'].strip(),
+                wait=float(request.form['wait'].strip()),
+                scrolltoJs=request.form['scrolltoJs'].strip(),
+                scrolltox=float(request.form['scrolltox'].strip()),
+                scrolltoy=float(request.form['scrolltoy'].strip()),
+                checkReadyJs=request.form['checkReadyJs'].strip(),
+                waitJs=float(request.form['waitJs'].strip()),
+            )
+        }
+        crons = json.loads(CRON_DB.read_text(encoding='utf-8'))
+        crons.append(cron)
+        TempFile.save_utf8(CRON_DB, json.dumps(crons))
+        return redirect('/cron/form?message=added%20successfully&apikey=' + request.form['apikey'])
+    elif request.form['action'] == 'delete':
+        cronId = int(request.form['cronId'].strip())
+        crons = json.loads(CRON_DB.read_text(encoding='utf-8'))
+        crons = [*filter(lambda c: c['cronId'] != cronId, crons)]
+        TempFile.save_utf8(CRON_DB, json.dumps(crons))
+        return redirect('/cron/form?message=deleted%20successfully&apikey=' + request.form['apikey'])
