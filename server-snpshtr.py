@@ -115,7 +115,7 @@ def get_updated_job_list() -> list[dict[str, Any]]:
             cronId2jobpos[job['cronId']].append(i)
         toDiscardPos: list[int] = list()
         for cronId, jobspos in cronId2jobpos.items():
-            toDiscardPos += jobspos[:-cronId2historySize[cronId]]
+            toDiscardPos += jobspos[:-round(cronId2historySize[cronId])]
         toDiscardPos.sort()
         toDiscardPos.reverse()
         for pos in toDiscardPos:
