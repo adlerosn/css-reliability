@@ -118,7 +118,7 @@ def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tupl
             job['checkReadyJs'],
             job['url'],
         )
-        time.sleep(20)
+        time.sleep(2)
     else:
         try:
             resp.raise_for_status()
