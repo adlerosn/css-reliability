@@ -49,3 +49,16 @@ steps:
       - sudo docker build . -f docker-client-snpcmp.Dockerfile -t docker-client-snpcmp --build-arg apikey=$$SHARED_SOLUTION_KEY --build-arg baseapi=https://api-css-reliability.sfner.com
       - sudo docker image save -o /var/www/css_reliability/docker/docker-client-snpcmp.tar docker-client-snpcmp
       - sudo chown http:http -R /var/www/css_reliability/docker
+      - echo docker run -itd --hostname linux-docker --restart always --name docker-client-snpcmp docker-client-snpcmp:latest
+
+  - name: docker_shtr_imsave
+    depends_on:
+      - copy
+    environment:
+      SHARED_SOLUTION_KEY:
+        from_secret: shared_solution_key
+    commands:
+      - sudo docker build . -f docker-client-dckshtr.Dockerfile -t docker-client-dckshtr --build-arg apikey=$$SHARED_SOLUTION_KEY --build-arg baseapi=https://api-css-reliability.sfner.com
+      - sudo docker image save -o /var/www/css_reliability/docker/docker-client-dckshtr.tar docker-client-dckshtr
+      - sudo chown http:http -R /var/www/css_reliability/docker
+      - echo docker run -itd --hostname linux-docker --restart always --name docker-client-dckshtr docker-client-dckshtr:latest

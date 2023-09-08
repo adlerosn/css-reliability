@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# -*- encoding: utf-8 -*-
 
 from concurrent.futures import Future, ProcessPoolExecutor
 import hashlib
