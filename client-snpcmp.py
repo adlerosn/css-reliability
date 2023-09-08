@@ -283,6 +283,8 @@ def run_job(
         m = hashlib.sha256()
         m.update(b)
         h = m.hexdigest()
+        print(
+            f'[DEBUG] About to upload {len(b)/(2**20):.2f} MB for job {jobId}')
         requests.post(
             f'{BASEAPI}/analysis?key={APIKEY}&worker={socket.gethostname()}&jobId={jobId}&completeness={completeness}&sha256={h}',
             headers={'content-type': 'application/zip',
