@@ -328,7 +328,7 @@ def analysis_post():
     next_anal = analyzer_get_next_job(worker)
     jobId = int(request.args.get('jobId', '0'))
     completeness = int(request.args.get('completeness', '0'))
-    if next_anal['worker'] != worker:
+    if next_anal['assignee'] != worker:
         raise ValueError('Wrong job')
     if next_anal['jobId'] != jobId:
         raise ValueError('Wrong job')

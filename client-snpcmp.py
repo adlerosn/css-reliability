@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-# -*- encoding: utf-8 -*-
+
 
 from concurrent.futures import Future, ProcessPoolExecutor
+import hashlib
 import json
-import os
 import pandas
-import psutil
 from myoverrides import BASEAPI, APIKEY
 import importlib
 import socket
@@ -16,14 +15,13 @@ from collections import defaultdict
 from dataclasses import dataclass
 from io import BytesIO, StringIO
 from pathlib import Path
-from typing import Any, Callable, Generic, Iterable, TypeVar
+from typing import Iterable, Literal, TypeVar
 
 import numpy
 import PIL.Image
 import requests
 
-# BASEAPI = Path('baseapi.txt').read_text(encoding='utf-8').strip()
-# APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
+
 UPDURL = Path('updurl.txt').read_text(encoding='utf-8').strip()
 
 
@@ -105,14 +103,20 @@ def img_to_png(i: PIL.Image.Image) -> bytes:
     return bio.getvalue()
 
 
+def avg(li: list[int | float], on_empty: float | None = None) -> float:
+    if len(li) <= 0:
+        if on_empty is None:
+            raise ValueError('List is empty')
+        return on_empty
+    return sum(li)/len(li)
+
+
 def run_job(
     jobId: int,
     completeness: int,
     workers: dict[str, str | None],
 ):
     with ProcessPoolExecutor(16) as pe:
-        print(jobId, completeness, workers)
-        print('1')
         name_images = {
             name: into_rgb(PIL.Image.open(BytesIO(bts)))
             for name, bts in
@@ -120,7 +124,6 @@ def run_job(
                 zip_in_memory_extract_all(zipfile.ZipFile(
                     BytesIO(get_content_checking(f'{BASEAPI}/{worker}')))).items()
                 for worker in workers.values() if worker is not None])]}
-        print('2')
         samples: dict[str, list[tuple[BrowsingContext,
                                       PIL.Image.Image]]] = defaultdict(list)
         for name, im in name_images.items():
@@ -245,15 +248,49 @@ def run_job(
         recordsio = StringIO()
         df.to_json(recordsio, orient='records')
         records = json.loads(recordsio.getvalue())
+        major_difference:  dict[Literal['resolution'] | Literal['platform'] | Literal['browser'] | Literal['platformBrowser'], dict[str, list[float]]] = dict(
+            resolution=defaultdict(list),
+            platform=defaultdict(list),
+            browser=defaultdict(list),
+            platformBrowser=defaultdict(list),
+        )
+        for record in records:
+            major_difference['resolution'][f"{record['resolution']}.{record['printScope']}"].append(
+                record['rmse'])
+            if record['platform1'] != record['platform2']:
+                major_difference['platform'][record['platform1']].append(
+                    record['rmse'])
+                major_difference['platform'][record['platform2']].append(
+                    record['rmse'])
+            if record['browser1'] != record['browser2']:
+                major_difference['browser'][record['browser1']].append(
+                    record['rmse'])
+                major_difference['browser'][record['browser2']].append(
+                    record['rmse'])
+            if record['platform1'] != record['platform2'] or record['browser1'] != record['browser2']:
+                major_difference['platformBrowser'][f"{record['platform1']}.{record['browser1']}"].append(
+                    record['rmse'])
+                major_difference['platformBrowser'][f"{record['platform2']}.{record['browser2']}"].append(
+                    record['rmse'])
+        major_difference_avg = {
+            k: {k2: avg(v) for k2, v in d2.items()} for k, d2 in major_difference.items()}
         report = dict(
+            indicators=major_difference_avg,
             records=records,
         )
-        Path('temp.json').write_text(json.dumps(
-            report, indent=4), encoding='utf-8')
+        zf.writestr('analysis.json', json.dumps(
+            report, indent=4).encode(encoding='utf-8'))
         zf.close()
-        Path('temp.zip').write_bytes(bzf.getvalue())
-        # print(df)
-        print('3')
+        b = bzf.getvalue()
+        m = hashlib.sha256()
+        m.update(b)
+        h = m.hexdigest()
+        requests.post(
+            f'{BASEAPI}/analysis?key={APIKEY}&worker={socket.gethostname()}&jobId={jobId}&completeness={completeness}&sha256={h}',
+            headers={'content-type': 'application/zip',
+                     'content-length': str(len(b))},
+            data=b).raise_for_status()
+        print(f'[INFO] Uploaded analysis for job {jobId} successfully')
 
 
 def gather_next_job():
