@@ -149,11 +149,11 @@ def self_update():
     global gather_next_job, run_job
     resp = requests.get(UPDURL.rsplit('/', 1)[0]+'/'+'client-dckshtr.py')
     resp.raise_for_status()
-    if resp.content != Path('client-snpshtr.py').read_bytes():
+    if resp.content != Path('client-dckshtr.py').read_bytes():
         if not Path('.git').exists():
-            Path('client-snpshtr.py').write_bytes(resp.content)
+            Path('client-dckshtr.py').write_bytes(resp.content)
     importlib.invalidate_caches()
-    selfmodule = importlib.import_module('client-snpshtr')
+    selfmodule = importlib.import_module('client-dckshtr')
     importlib.reload(selfmodule)
     gather_next_job = selfmodule.gather_next_job
     run_job = selfmodule.run_job
