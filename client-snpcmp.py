@@ -329,7 +329,8 @@ def self_update():
             if not Path('.git').exists():
                 Path('client-snpcmp.py').write_bytes(newscript)
     except Exception:
-        pass
+        print('[WARN] Could not update')
+        raise
     importlib.invalidate_caches()
     selfmodule = importlib.import_module('client-snpcmp')
     importlib.reload(selfmodule)

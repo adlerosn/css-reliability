@@ -159,11 +159,15 @@ def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tupl
 
 def self_update():
     global gather_next_job, run_job
-    resp = requests.get(UPDURL)
-    resp.raise_for_status()
-    if resp.content != Path('client-snpshtr.py').read_bytes():
-        if not Path('.git').exists():
-            Path('client-snpshtr.py').write_bytes(resp.content)
+    try:
+        resp = requests.get(UPDURL)
+        resp.raise_for_status()
+        if resp.content != Path('client-snpshtr.py').read_bytes():
+            if not Path('.git').exists():
+                Path('client-snpshtr.py').write_bytes(resp.content)
+    except Exception:
+        print('[WARN] Could not update')
+        raise
     importlib.invalidate_caches()
     selfmodule = importlib.import_module('client-snpshtr')
     importlib.reload(selfmodule)

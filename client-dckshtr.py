@@ -147,11 +147,15 @@ def gather_next_job(browsers: list[tuple[str, Browser]], resolutions_spec: list[
 
 def self_update():
     global gather_next_job, run_job
-    resp = requests.get(UPDURL.rsplit('/', 1)[0]+'/'+'client-dckshtr.py')
-    resp.raise_for_status()
-    if resp.content != Path('client-dckshtr.py').read_bytes():
-        if not Path('.git').exists():
-            Path('client-dckshtr.py').write_bytes(resp.content)
+    try:
+        resp = requests.get(UPDURL.rsplit('/', 1)[0]+'/'+'client-dckshtr.py')
+        resp.raise_for_status()
+        if resp.content != Path('client-dckshtr.py').read_bytes():
+            if not Path('.git').exists():
+                Path('client-dckshtr.py').write_bytes(resp.content)
+    except Exception:
+        print('[WARN] Could not update')
+        raise
     importlib.invalidate_caches()
     selfmodule = importlib.import_module('client-dckshtr')
     importlib.reload(selfmodule)
