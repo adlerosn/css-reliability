@@ -19,6 +19,7 @@ steps:
       - sudo make -C /var/www/css_reliability virtual_env
       - sudo rm -rf /var/www/css_reliability/virtual_env_
       - echo $$SHARED_SOLUTION_KEY | sudo tee /var/www/css_reliability/apikey.txt >/dev/null
+      - sudo mkdir -p /var/www/css_reliability/static
       - sudo chown http:http -R /var/www/css_reliability
 
   - name: configure
@@ -37,3 +38,14 @@ steps:
       - sudo systemctl reload nginx
       - sudo systemctl enable css_reliability.service
       - sudo systemctl restart css_reliability.service
+
+  - name: docker_cmp_imsave
+    depends_on:
+      - copy
+    environment:
+      SHARED_SOLUTION_KEY:
+        from_secret: shared_solution_key
+    commands:
+      - sudo docker build . -f docker-client-snpcmp.Dockerfile -t docker-client-snpcmp --build-arg apikey=$$shared_solution_key --build-arg baseapi=https://api-css-reliability.sfner.com
+      - sudo docker image save -o /var/www/css_reliability/static/docker-client-snpcmp.tar docker-client-snpcmp
+      - sudo chown http:http -R /var/www/css_reliability/static
