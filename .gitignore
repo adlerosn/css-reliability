@@ -15,3 +15,5 @@ crons.json
 jobs.json
 ids.json
 jobs
+temp.*
+myoverrides.py

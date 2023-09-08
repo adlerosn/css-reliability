@@ -14,7 +14,7 @@ import time
 from typing import Any
 from uuid import uuid4
 
-from flask import Flask, make_response, request, send_file, jsonify, redirect
+from flask import Flask, make_response, request, send_file, jsonify, redirect, send_from_directory
 
 APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
 
@@ -53,6 +53,7 @@ for x in Path('.').glob('*.temp'):
 
 
 JOB_DEFAULTS = dict(
+    hideScrollbar=1,
     wait=0,
     scrolltoJs='',
     scrolltox=0,
@@ -311,7 +312,7 @@ def analysis_next_get():
         resp = make_response('no new job')
         resp.status_code = 404
         return resp
-    return jsonify({**JOB_DEFAULTS, **next_job})
+    return jsonify(next_job)
 
 
 @app.route('/analysis', methods=['POST'])
@@ -412,3 +413,8 @@ def cron_form_post():
         crons = [*filter(lambda c: c['cronId'] != cronId, crons)]
         TempFile.save_utf8(CRON_DB, json.dumps(crons))
         return redirect('/cron/form?message=deleted%20successfully&apikey=' + request.form['apikey'])
+
+
+@app.route('/jobs/<path:path>', methods=['HEAD', 'OPTIONS', 'GET'])
+def jobs_static(path):
+    return send_from_directory('jobs', path)

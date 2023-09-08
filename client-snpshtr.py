@@ -36,9 +36,23 @@ APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
 UPDURL = Path('updurl.txt').read_text(encoding='utf-8').strip()
 
 
+def run_hide_scrollbar(browser: WDTP):
+    return browser.execute_script(
+        '''
+        (function(){
+            const newStyle = document.createElement('style');
+            newStyle.innerHTML = '::-webkit-scrollbar {display: none !important;} ' +
+                '* {scrollbar-width: none !important; scrollbar-color: transparent !important;}';
+            document.head.appendChild(newStyle);
+        })();
+        '''.strip()
+    )
+
+
 def run_job(browsers: list[WDTP],
             resolutions_spec: list[tuple[str, tuple[int, int]]],
             jobId: int,
+            hideScrollbar: bool,
             wait: float,
             scrolltoJs: str,
             scrolltox: int,
@@ -52,6 +66,8 @@ def run_job(browsers: list[WDTP],
         bio, mode='w', compression=zipfile.ZIP_DEFLATED, compresslevel=9)
     for browser in browsers:
         browser.get(url)
+        if hideScrollbar:
+            run_hide_scrollbar(browser)
         browser.execute_script(preRunJs)
         time.sleep(waitJs)
         if checkReadyJs:
@@ -64,6 +80,8 @@ def run_job(browsers: list[WDTP],
             else:
                 browser.execute_script(
                     f'window.scrollTo({scrolltox}, {scrolltoy})')
+            if hideScrollbar:
+                run_hide_scrollbar(browser)
             time.sleep(wait)
             if hasattr(browser, 'get_full_page_screenshot_as_png'):
                 zf.writestr(
@@ -109,6 +127,7 @@ def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tupl
             browsers,
             resolutions_spec,
             job['jobId'],
+            bool(job['hideScrollbar']),
             job['wait'],
             job['scrolltoJs'],
             job['scrolltox'],
