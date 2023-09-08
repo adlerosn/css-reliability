@@ -45,7 +45,7 @@ def flatten(lli: Iterable[Iterable[_VT]]) -> Iterable[_VT]:
 
 
 def get_git_asset_url(fl: str) -> str:
-    return UPDURL.rsplit('/', 1)[0]+fl
+    return UPDURL.rsplit('/', 1)[0]+'/'+fl
 
 
 def get_content_checking(fl: str) -> bytes:
