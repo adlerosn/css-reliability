@@ -5,7 +5,6 @@ from concurrent.futures import Future, ProcessPoolExecutor
 import hashlib
 import json
 import pandas
-from myoverrides import BASEAPI, APIKEY
 import importlib
 import socket
 import time
@@ -21,13 +20,12 @@ import numpy
 import PIL.Image
 import requests
 
-
+BASEAPI = Path('baseapi.txt').read_text(encoding='utf-8').strip()
+APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
 UPDURL = Path('updurl.txt').read_text(encoding='utf-8').strip()
 
 
 _VT = TypeVar('_VT')
-_CT = TypeVar('_CT')
-_RT = TypeVar('_RT')
 
 
 @dataclass
