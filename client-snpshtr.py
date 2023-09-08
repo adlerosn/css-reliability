@@ -5,15 +5,20 @@ import hashlib
 import importlib
 from io import BytesIO
 import json
+import os
 from pathlib import Path
 import socket
 import sys
 import traceback
 from typing import Union
+import PIL.Image
 import requests
 from selenium import webdriver
 import time
 import zipfile
+
+
+TEST_W, TEST_H = 800, 600
 
 WDTP = Union[webdriver.Firefox, webdriver.Chrome,
              webdriver.Edge, webdriver.Safari]
@@ -65,6 +70,11 @@ def run_job(browsers: list[WDTP],
     zf = zipfile.ZipFile(
         bio, mode='w', compression=zipfile.ZIP_DEFLATED, compresslevel=9)
     for browser in browsers:
+        browser.get('about:blank')
+        browser.set_window_size(TEST_W, TEST_H)
+        actual_w, actual_h = PIL.Image.open(
+            BytesIO(browser.get_screenshot_as_png())).size
+        compensation_w, compensation_h = TEST_W-actual_w, TEST_H-actual_h
         browser.get(url)
         if hideScrollbar:
             run_hide_scrollbar(browser)
@@ -74,7 +84,7 @@ def run_job(browsers: list[WDTP],
             while (waitReady := browser.execute_script(checkReadyJs)) > 0:
                 time.sleep(waitReady)
         for resolution_name, (resw, resh) in resolutions_spec:
-            browser.set_window_size(resw, resh)
+            browser.set_window_size(resw+compensation_w, resh+compensation_h)
             if scrolltoJs:
                 browser.execute_script(scrolltoJs)
             else:
@@ -172,8 +182,11 @@ def main():
     try:
         for browser_spec in browsers_spec:
             opt = CLS_OPTIONS[browser_spec['type']]()
-            for arg in browser_spec['arguments']:
-                opt.add_argument(arg)
+            if os.environ.get('SKIP_ARGS', '') == '':
+                for arg in browser_spec['arguments']:
+                    opt.add_argument(arg)
+            else:
+                opt.headless = False
             try:
                 browser = CLS_WEBDRIVER[browser_spec['type']](opt)
                 browsers.append(browser)
