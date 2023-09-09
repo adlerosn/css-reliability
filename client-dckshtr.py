@@ -56,6 +56,7 @@ def run_job(browsers: list[tuple[str, Page]],
     for browser_name, browser in browsers:
         browser.goto('about:blank')
         browser.set_viewport_size(dict(width=TEST_W, height=TEST_H))
+        time.sleep(.1)
         actual_w, actual_h = PIL.Image.open(
             BytesIO(browser.screenshot())).size
         compensation_w, compensation_h = TEST_W-actual_w, TEST_H-actual_h
@@ -70,6 +71,7 @@ def run_job(browsers: list[tuple[str, Page]],
         for resolution_name, (resw, resh) in resolutions_spec:
             browser.set_viewport_size(
                 dict(width=resw+compensation_w, height=resh+compensation_h))
+            time.sleep(.1)
             if scrolltoJs:
                 browser.evaluate(scrolltoJs)
             else:
