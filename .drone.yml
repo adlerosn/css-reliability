@@ -23,7 +23,7 @@ steps:
 
   - name: frontent_reload
     depends_on:
-      - frontent_deploy
+      - frontend_deploy
     commands:
       - sudo touch /var/lib/static-site-server-rs/routes.yaml
 
