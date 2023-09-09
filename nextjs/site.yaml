@@ -1,0 +1,4 @@
+- domain: "css-reliability.sfner.com"
+  hsts: true
+- domain: "localhost:31975"
+  only_on_dev: true

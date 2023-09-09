@@ -3,6 +3,28 @@ type: exec
 name: default
 
 steps:
+  - name: frontend_build
+    commands:
+      - cd nextjs
+      - npm install
+      - npm run build
+      - cd ..
+
+  - name: frontend_deploy
+    depends_on:
+      - frontend_build
+    commands:
+      - sudo rm -rf /var/lib/static-site-server-rs/sites/site_css_reliability
+      - sudo mkdir -p /var/lib/static-site-server-rs/sites/site_css_reliability/files
+      - sudo install -m 644 -T nextjs/site.yaml /var/lib/static-site-server-rs/sites/site_css_reliability/site.yaml
+      - sudo cp -R nextjs/out/. /var/lib/static-site-server-rs/sites/site_css_reliability/files/.
+
+  - name: frontent_reload
+    depends_on:
+      - frontent_deploy
+    commands:
+      - sudo touch /var/lib/static-site-server-rs/routes.yaml
+
   - name: copy
     environment:
       SHARED_SOLUTION_KEY:
