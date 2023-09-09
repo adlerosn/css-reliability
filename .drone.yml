@@ -4,6 +4,8 @@ name: default
 
 steps:
   - name: frontend_build
+    depends_on:
+      - clone
     commands:
       - cd nextjs
       - npm install
@@ -26,6 +28,8 @@ steps:
       - sudo touch /var/lib/static-site-server-rs/routes.yaml
 
   - name: copy
+    depends_on:
+      - clone
     environment:
       SHARED_SOLUTION_KEY:
         from_secret: shared_solution_key
