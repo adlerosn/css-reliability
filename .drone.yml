@@ -3,12 +3,19 @@ type: exec
 name: default
 
 steps:
-  - name: frontend_build
+  - name: frontend_fetch
     depends_on:
       - clone
     commands:
       - cd nextjs
       - npm install
+      - cd ..
+
+  - name: frontend_build
+    depends_on:
+      - frontend_fetch
+    commands:
+      - cd nextjs
       - npm run build
       - cd ..
 
