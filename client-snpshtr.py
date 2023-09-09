@@ -95,14 +95,14 @@ def run_job(browsers: list[WDTP],
             time.sleep(wait)
             if hasattr(browser, 'get_full_page_screenshot_as_png'):
                 scrsht = browser.get_full_page_screenshot_as_png()
-                im = PIL.Image.open(scrsht)
+                im = PIL.Image.open(BytesIO(scrsht))
                 if im.size[0] == resw:
                     zf.writestr(
                         f'{sys.platform}.{socket.gethostname()}.{browser.name}.{resolution_name}.full.png',
                         scrsht
                     )
             scrsht = browser.get_screenshot_as_png()
-            im = PIL.Image.open(scrsht)
+            im = PIL.Image.open(BytesIO(scrsht))
             if im.size == (resw, resh):
                 zf.writestr(
                     f'{sys.platform}.{socket.gethostname()}.{browser.name}.{resolution_name}.partial.png',

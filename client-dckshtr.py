@@ -84,7 +84,7 @@ def run_job(browsers: list[tuple[str, Page]],
             #         browser.screenshot()
             #     )
             scrsht = browser.screenshot()
-            im = PIL.Image.open(scrsht)
+            im = PIL.Image.open(BytesIO(scrsht))
             if im.size == (resw, resh):
                 zf.writestr(
                     f'{PLATFORM}.{socket.gethostname()}.{browser_name}.{resolution_name}.partial.png',
