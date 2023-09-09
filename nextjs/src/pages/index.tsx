@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import clsx from "clsx";
 import { useQuery } from "react-query";
 import { BASEAPI, SOURCECODE, sleep } from "../lib/index";
-import { Analysis, JobMinimal } from "../types/index";
+import { Analysis, Job } from "../types/index";
 import axios from "axios";
 import Link from "next/link";
 
@@ -22,7 +22,7 @@ export default function Home() {
   );
   const jobsQuery = useQuery(
     "base-jobs",
-    async () => axios.get<JobMinimal[]>(`${BASEAPI}/job`),
+    async () => axios.get<Job[]>(`${BASEAPI}/job`),
     {
       onError: async () => {
         await sleep(5000);
@@ -66,6 +66,7 @@ export default function Home() {
         )}
         <p>Some pages have meaningful CSS... that breaks; this doesn&apos;t.</p>
         <p>
+          <Link href="/status">Status</Link> -{" "}
           <Link href={SOURCECODE}>Source code</Link> -{" "}
           <Link href="/about">About</Link> -{" "}
           <Link href="https://derg.green">Creator</Link>

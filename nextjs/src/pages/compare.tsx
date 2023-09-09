@@ -3,7 +3,7 @@ import { Inter, Source_Code_Pro } from "next/font/google";
 import clsx from "clsx";
 import { useQuery } from "react-query";
 import { BASEAPI, matchesFirst, sleep } from "../lib/index";
-import { JobMinimal } from "../types/index";
+import { Job } from "../types/index";
 import axios from "axios";
 import { useRouter } from "next/router";
 
@@ -24,7 +24,7 @@ export default function ComparePage() {
   const rmse = parseFloat(matchesFirst(router.query, "rmse") || "0");
   const jobsQuery = useQuery(
     "base-jobs",
-    async () => axios.get<JobMinimal[]>(`${BASEAPI}/job`),
+    async () => axios.get<Job[]>(`${BASEAPI}/job`),
     {
       onError: async () => {
         await sleep(5000);
@@ -32,7 +32,7 @@ export default function ComparePage() {
       },
     }
   );
-  const job: JobMinimal | undefined = Object.fromEntries(
+  const job: Job | undefined = Object.fromEntries(
     jobsQuery.data?.data.map((x) => [x.jobId, x]) || []
   )[parseInt(String(jobId))];
   return (
@@ -84,12 +84,26 @@ export default function ComparePage() {
         <table border={1}>
           <thead>
             <tr>
+              <th colSpan={3}>
+                {resolution}.{printScope}
+              </th>
+            </tr>
+            <tr>
               <th>1</th>
               <th>cmp</th>
               <th>2</th>
             </tr>
           </thead>
           <tbody>
+            <tr style={{ textAlign: "center" }}>
+              <td>{platform1}</td>
+              <td rowSpan={2}>{rmse}</td>
+              <td>{platform2}</td>
+            </tr>
+            <tr style={{ textAlign: "center" }}>
+              <td>{browser1}</td>
+              <td>{browser2}</td>
+            </tr>
             <tr>
               <td>
                 <img

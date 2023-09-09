@@ -1,4 +1,4 @@
-import { AnalysisResult } from ".";
+import { AnalysisResult, Uptime } from ".";
 
 export type Analysis = {
   cronId: number;
