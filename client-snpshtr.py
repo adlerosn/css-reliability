@@ -72,6 +72,7 @@ def run_job(browsers: list[WDTP],
     for browser in browsers:
         browser.get('about:blank')
         browser.set_window_size(TEST_W, TEST_H)
+        time.sleep(.25)
         actual_w, actual_h = PIL.Image.open(
             BytesIO(browser.get_screenshot_as_png())).size
         compensation_w, compensation_h = TEST_W-actual_w, TEST_H-actual_h
@@ -85,6 +86,7 @@ def run_job(browsers: list[WDTP],
                 time.sleep(waitReady)
         for resolution_name, (resw, resh) in resolutions_spec:
             browser.set_window_size(resw+compensation_w, resh+compensation_h)
+            time.sleep(.25)
             if scrolltoJs:
                 browser.execute_script(scrolltoJs)
             else:
