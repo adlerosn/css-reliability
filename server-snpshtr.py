@@ -98,7 +98,7 @@ def next_id(name: str) -> int:
     if name not in ids:
         ids[name] = 0
     ids[name] += 1
-    TempFile.save_utf8(ID_DB, json.dumps(ids))
+    TempFile.save_utf8(ID_DB, json.dumps(ids, indent=2))
     return ids[name]
 
 
@@ -141,9 +141,9 @@ def get_updated_job_list() -> list[dict[str, Any]]:
             job = jobs.pop(pos)
             job_path = JOBS_PATH.joinpath(f'{job["jobId"]:020d}')
             shutil.rmtree(job_path, ignore_errors=True)
-        TempFile.save_utf8(ANAL_DB, json.dumps(anals))
-        TempFile.save_utf8(CRON_DB, json.dumps(crons))
-        TempFile.save_utf8(JOB_DB, json.dumps(jobs))
+        TempFile.save_utf8(ANAL_DB, json.dumps(anals, indent=2))
+        TempFile.save_utf8(CRON_DB, json.dumps(crons, indent=2))
+        TempFile.save_utf8(JOB_DB, json.dumps(jobs, indent=2))
     return jobs
 
 
@@ -153,7 +153,7 @@ def worker_lastseen_update(name: str):
         uptimes: dict[str, float] = json.loads(
             UPTIME_DB.read_text(encoding='utf-8'))
         uptimes[namestrip] = time.time()
-        TempFile.save_utf8(UPTIME_DB, json.dumps(uptimes))
+        TempFile.save_utf8(UPTIME_DB, json.dumps(uptimes, indent=2))
 
 
 def analizer_lastseen_update(name: str):
@@ -162,7 +162,7 @@ def analizer_lastseen_update(name: str):
         uptimes: dict[str, float] = json.loads(
             UPTIME2_DB.read_text(encoding='utf-8'))
         uptimes[namestrip] = time.time()
-        TempFile.save_utf8(UPTIME2_DB, json.dumps(uptimes))
+        TempFile.save_utf8(UPTIME2_DB, json.dumps(uptimes, indent=2))
 
 
 def worker_get_next_job(worker: str) -> dict | None:
@@ -203,7 +203,7 @@ def get_updated_analysis_list() -> list[dict[str, Any]]:
             else:
                 anal.update(anal2)
     if upd:
-        TempFile.save_utf8(ANAL_DB, json.dumps(anals))
+        TempFile.save_utf8(ANAL_DB, json.dumps(anals, indent=2))
     return anals
 
 
@@ -217,7 +217,7 @@ def analyzer_get_next_job(worker: str) -> dict | None:
             elif not anal['assignee'] or anal['assigneeTime']+300 >= tm:
                 anal['assignee'] = worker
                 anal['assigneeTime'] = tm
-                TempFile.save_utf8(ANAL_DB, json.dumps(anals))
+                TempFile.save_utf8(ANAL_DB, json.dumps(anals, indent=2))
                 return anal
             else:
                 # this
@@ -355,7 +355,7 @@ def analysis_post():
             anal['analysis'] = json.loads(
                 zf.read('analysis.json').decode(encoding='utf-8'))
             break
-    TempFile.save_utf8(ANAL_DB, json.dumps(anals))
+    TempFile.save_utf8(ANAL_DB, json.dumps(anals, indent=2))
     return jsonify('OK')
 
 
@@ -407,13 +407,13 @@ def cron_form_post():
         }
         crons = json.loads(CRON_DB.read_text(encoding='utf-8'))
         crons.append(cron)
-        TempFile.save_utf8(CRON_DB, json.dumps(crons))
+        TempFile.save_utf8(CRON_DB, json.dumps(crons, indent=2))
         return redirect('/cron/form?message=added%20successfully&apikey=' + request.form['apikey'])
     elif request.form['action'] == 'delete':
         cronId = int(request.form['cronId'].strip())
         crons = json.loads(CRON_DB.read_text(encoding='utf-8'))
         crons = [*filter(lambda c: c['cronId'] != cronId, crons)]
-        TempFile.save_utf8(CRON_DB, json.dumps(crons))
+        TempFile.save_utf8(CRON_DB, json.dumps(crons, indent=2))
         return redirect('/cron/form?message=deleted%20successfully&apikey=' + request.form['apikey'])
 
 
@@ -439,7 +439,7 @@ def unzip_jobs_path(path):
     with zipfile.ZipFile(target_zip, mode='r') as zf:
         return send_file(
             BytesIO(json.dumps(
-                [i.filename for i in zf.infolist()]).encode('utf-8')),
+                [i.filename for i in zf.infolist()], indent=2).encode('utf-8')),
             last_modified=target_zip.stat().st_mtime,
             mimetype='application/json'
         )
