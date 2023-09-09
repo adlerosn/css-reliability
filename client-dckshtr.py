@@ -22,6 +22,8 @@ BASEAPI = Path('baseapi.txt').read_text(encoding='utf-8').strip()
 APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
 UPDURL = Path('updurl.txt').read_text(encoding='utf-8').strip()
 
+PLATFORM = 'docker'
+
 
 def run_hide_scrollbar(browser: Page):
     return browser.evaluate(
@@ -76,13 +78,13 @@ def run_job(browsers: list[tuple[str, Page]],
             if hideScrollbar:
                 run_hide_scrollbar(browser)
             time.sleep(wait)
-            if hasattr(browser, 'get_full_page_screenshot_as_png'):
-                zf.writestr(
-                    f'{sys.platform}.{socket.gethostname()}.{browser_name}.{resolution_name}.full.png',
-                    browser.screenshot()
-                )
+            # if hasattr(browser, 'get_full_page_screenshot_as_png'):
+            #     zf.writestr(
+            #         f'{PLATFORM}.{socket.gethostname()}.{browser_name}.{resolution_name}.full.png',
+            #         browser.screenshot()
+            #     )
             zf.writestr(
-                f'{sys.platform}.{socket.gethostname()}.{browser_name}.{resolution_name}.partial.png',
+                f'{PLATFORM}.{socket.gethostname()}.{browser_name}.{resolution_name}.partial.png',
                 browser.screenshot()
             )
         browser.goto('about:blank')
@@ -96,7 +98,7 @@ def run_job(browsers: list[tuple[str, Page]],
         headers={'content-type': 'application/zip',
                  'content-length': str(len(b))},
         data=b).raise_for_status()
-    # Path(f'{sys.platform}.{jobId:012d}.zip').write_bytes(bio.getvalue())
+    # Path(f'{PLATFORM}.{jobId:012d}.zip').write_bytes(bio.getvalue())
     print(f'[INFO] Uploaded results for job {jobId} successfully')
     del zf
     del bio
