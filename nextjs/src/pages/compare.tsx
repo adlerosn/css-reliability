@@ -137,18 +137,21 @@ export default function ComparePage() {
                 <img
                   src={`${BASEAPI}/unzip/jobs/${jobId}/${hostname1}.zip/${platform1}.${hostname1}.${browser1}.${resolution}.${printScope}.png`}
                   alt={""}
+                  style={{ maxWidth: "calc(33.33333vw - 1rem)" }}
                 />
               </td>
               <td>
                 <img
                   src={`${BASEAPI}/unzip/jobs/${jobId}/analysis.zip/${resolution}.${printScope}.${hostname1}.${hostname2}.${platform1}.${platform2}.${browser1}.${browser2}.png`}
                   alt={""}
+                  style={{ maxWidth: "calc(33.33333vw - 1rem)" }}
                 />
               </td>
               <td>
                 <img
                   src={`${BASEAPI}/unzip/jobs/${jobId}/${hostname2}.zip/${platform2}.${hostname2}.${browser2}.${resolution}.${printScope}.png`}
                   alt={""}
+                  style={{ maxWidth: "calc(33.33333vw - 1rem)" }}
                 />
               </td>
             </tr>

@@ -56,7 +56,6 @@ def run_job(browsers: list[tuple[str, Page]],
     for browser_name, browser in browsers:
         browser.goto('about:blank')
         browser.set_viewport_size(dict(width=TEST_W, height=TEST_H))
-        time.sleep(.25)
         actual_w, actual_h = PIL.Image.open(
             BytesIO(browser.screenshot())).size
         compensation_w, compensation_h = TEST_W-actual_w, TEST_H-actual_h
@@ -71,7 +70,6 @@ def run_job(browsers: list[tuple[str, Page]],
         for resolution_name, (resw, resh) in resolutions_spec:
             browser.set_viewport_size(
                 dict(width=resw+compensation_w, height=resh+compensation_h))
-            time.sleep(.25)
             if scrolltoJs:
                 browser.evaluate(scrolltoJs)
             else:
@@ -85,10 +83,15 @@ def run_job(browsers: list[tuple[str, Page]],
             #         f'{PLATFORM}.{socket.gethostname()}.{browser_name}.{resolution_name}.full.png',
             #         browser.screenshot()
             #     )
-            zf.writestr(
-                f'{PLATFORM}.{socket.gethostname()}.{browser_name}.{resolution_name}.partial.png',
-                browser.screenshot()
-            )
+            scrsht = browser.screenshot()
+            im = PIL.Image.open(scrsht)
+            if im.size == (resw, resh):
+                zf.writestr(
+                    f'{PLATFORM}.{socket.gethostname()}.{browser_name}.{resolution_name}.partial.png',
+                    scrsht
+                )
+            del im
+            del scrsht
         browser.goto('about:blank')
     zf.close()
     b = bio.getvalue()

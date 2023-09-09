@@ -72,7 +72,6 @@ def run_job(browsers: list[WDTP],
     for browser in browsers:
         browser.get('about:blank')
         browser.set_window_size(TEST_W, TEST_H)
-        time.sleep(.25)
         actual_w, actual_h = PIL.Image.open(
             BytesIO(browser.get_screenshot_as_png())).size
         compensation_w, compensation_h = TEST_W-actual_w, TEST_H-actual_h
@@ -86,7 +85,6 @@ def run_job(browsers: list[WDTP],
                 time.sleep(waitReady)
         for resolution_name, (resw, resh) in resolutions_spec:
             browser.set_window_size(resw+compensation_w, resh+compensation_h)
-            time.sleep(.25)
             if scrolltoJs:
                 browser.execute_script(scrolltoJs)
             else:
@@ -96,14 +94,22 @@ def run_job(browsers: list[WDTP],
                 run_hide_scrollbar(browser)
             time.sleep(wait)
             if hasattr(browser, 'get_full_page_screenshot_as_png'):
+                scrsht = browser.get_full_page_screenshot_as_png()
+                im = PIL.Image.open(scrsht)
+                if im.size[0] == resw:
+                    zf.writestr(
+                        f'{sys.platform}.{socket.gethostname()}.{browser.name}.{resolution_name}.full.png',
+                        scrsht
+                    )
+            scrsht = browser.get_screenshot_as_png()
+            im = PIL.Image.open(scrsht)
+            if im.size == (resw, resh):
                 zf.writestr(
-                    f'{sys.platform}.{socket.gethostname()}.{browser.name}.{resolution_name}.full.png',
-                    browser.get_full_page_screenshot_as_png()
+                    f'{sys.platform}.{socket.gethostname()}.{browser.name}.{resolution_name}.partial.png',
+                    scrsht
                 )
-            zf.writestr(
-                f'{sys.platform}.{socket.gethostname()}.{browser.name}.{resolution_name}.partial.png',
-                browser.get_screenshot_as_png()
-            )
+            del im
+            del scrsht
         browser.get('about:blank')
     zf.close()
     b = bio.getvalue()
