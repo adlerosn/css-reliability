@@ -3,12 +3,7 @@ import { Inter, Source_Code_Pro } from "next/font/google";
 import clsx from "clsx";
 import { useQuery } from "react-query";
 import { BASEAPI, matchesFirst, sleep } from "../lib/index";
-import {
-  Analysis,
-  AnalysisRecord,
-  AnalysisResult,
-  JobMinimal,
-} from "../types/index";
+import { AnalysisResult, JobMinimal } from "../types/index";
 import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";

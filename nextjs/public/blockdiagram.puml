@@ -1,0 +1,59 @@
+@startuml
+hide empty members
+hide circle
+
+class "Checker browser" as client {
+}
+
+package "Cloud server" as cloudsrv {
+    class "API" as cloudsrvapi {
+    }
+    class "Front-end" as cloudsrvfe {
+    }
+}
+
+package "On-premises (Dynamic IP, behind CGNAT)" {
+
+    package "On-premises PC" as onpremworkers {
+
+        package "Cockpit's virtd VM Orchestrator" as cockpit {
+            package "Linux VM" as cockpitlinux {
+                class "Desktop\nScreenshooter" as archshooter <<scrshtr-arch>> {
+                }
+            }
+            package "Windows VM" as cockpitwin {
+                class "Desktop\nScreenshooter" as winshooter <<scrshtr-win11>> {
+                }
+            }
+        }
+
+        package "Docker Container Orchestrator" as docker {
+            package "Linux VM" as dockershootercontainer {
+                class "Docker\nScreenshooter" as dockershooter <<docker-linux>> {
+                }
+            }
+            package "Windows VM" as dockercomparatorcontainer {
+                class "Screenshot\nComparator" as dockercomparator <<docker-linux>> {
+                }
+            }
+        }
+    }
+
+    package "On-premises MacMini" as onpremmac {
+        class "Safari\nScreenshooter" as macshooter <<scrshtr-mac>> {
+        }
+    }
+
+}
+
+client <-- cloudsrvfe
+cloudsrvfe <-- cloudsrvapi
+cloudsrvapi <-- archshooter
+cloudsrvapi <-- winshooter
+cloudsrvapi <-- dockershooter
+cloudsrvapi <-- dockercomparator
+cloudsrvapi <-- macshooter
+cockpit <-[hidden]- docker
+onpremmac <-[hidden]- cockpit
+
+@enduml

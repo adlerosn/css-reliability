@@ -1,19 +1,11 @@
 import Head from "next/head";
-import Image from "next/image";
 import { Inter, Source_Code_Pro } from "next/font/google";
 import clsx from "clsx";
 import { useQuery } from "react-query";
 import { BASEAPI, matchesFirst, sleep } from "../lib/index";
-import {
-  Analysis,
-  AnalysisRecord,
-  AnalysisResult,
-  JobMinimal,
-} from "../types/index";
+import { JobMinimal } from "../types/index";
 import axios from "axios";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 const scp = Source_Code_Pro({ subsets: ["latin"] });
@@ -40,43 +32,9 @@ export default function ComparePage() {
       },
     }
   );
-  const analysisQuery = useQuery(
-    `analysis-${jobId}`,
-    async () =>
-      axios.get<AnalysisResult>(
-        `${BASEAPI}/unzip/jobs/${jobId}/analysis.zip/analysis.json`
-      ),
-    {
-      onError: async () => {
-        await sleep(5000);
-        jobsQuery.refetch();
-      },
-    }
-  );
   const job: JobMinimal | undefined = Object.fromEntries(
     jobsQuery.data?.data.map((x) => [x.jobId, x]) || []
   )[parseInt(String(jobId))];
-  const analysis = analysisQuery.data?.data;
-  const analysisRecords = [...(analysis?.records || [])].sort(
-    (a, b) => -a.rmse + b.rmse
-  );
-  const [errorTableExpanded, setErrorTableExpanded] = useState(false);
-  const [resolutionExpanded, setResolutionExpanded] = useState(false);
-  const problematicResolution = Object.entries(
-    analysis?.indicators?.resolution || {}
-  ).sort(([, a], [, b]) => -a + b);
-  const [browserExpanded, setBrowserExpanded] = useState(false);
-  const problematicBrowser = Object.entries(
-    analysis?.indicators?.browser || {}
-  ).sort(([, a], [, b]) => -a + b);
-  const [platformExpanded, setPlatformExpanded] = useState(false);
-  const problematicPlatform = Object.entries(
-    analysis?.indicators?.platform || {}
-  ).sort(([, a], [, b]) => -a + b);
-  const [platformBrowserExpanded, setPlatformBrowserExpanded] = useState(false);
-  const problematicPlatformBrowser = Object.entries(
-    analysis?.indicators?.platformBrowser || {}
-  ).sort(([, a], [, b]) => -a + b);
   return (
     <>
       <Head>
@@ -118,7 +76,7 @@ export default function ComparePage() {
               <td>{platform2}</td>
               <td>{browser1}</td>
               <td>{browser2}</td>
-              <td>{rmse}</td>
+              <td className={clsx(scp.className)}>{rmse}</td>
             </tr>
           </tbody>
         </table>

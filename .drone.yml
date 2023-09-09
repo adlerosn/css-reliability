@@ -3,6 +3,12 @@ type: exec
 name: default
 
 steps:
+  - name: frontend_diagrams
+    depends_on:
+      - clone
+    commands:
+      - plantuml nextjs/public/blockdiagram.puml -tpng
+
   - name: frontend_fetch
     depends_on:
       - clone
@@ -14,6 +20,7 @@ steps:
   - name: frontend_build
     depends_on:
       - frontend_fetch
+      - frontend_diagrams
     commands:
       - cd nextjs
       - npm run build

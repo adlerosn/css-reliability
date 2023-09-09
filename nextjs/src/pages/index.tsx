@@ -2,7 +2,7 @@ import Head from "next/head";
 import { Inter } from "next/font/google";
 import clsx from "clsx";
 import { useQuery } from "react-query";
-import { BASEAPI, sleep } from "../lib/index";
+import { BASEAPI, SOURCECODE, sleep } from "../lib/index";
 import { Analysis, JobMinimal } from "../types/index";
 import axios from "axios";
 import Link from "next/link";
@@ -65,6 +65,11 @@ export default function Home() {
           </ul>
         )}
         <p>Some pages have meaningful CSS... that breaks; this doesn&apos;t.</p>
+        <p>
+          <Link href={SOURCECODE}>Source code</Link> -{" "}
+          <Link href="/about">About</Link> -{" "}
+          <Link href="https://derg.green">Creator</Link>
+        </p>
       </main>
     </>
   );
