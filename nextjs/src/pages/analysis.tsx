@@ -116,7 +116,7 @@ export default function AnalysisPage() {
       k1,
       Object.fromEntries(Object.entries(o).map(([k2, v]) => [k2, avg(v, 0)])),
     ])
-  );
+  ) as AnalysisIndicator;
   const [errorTableExpanded, setErrorTableExpanded] = useState(false);
   const [resolutionExpanded, setResolutionExpanded] = useState(false);
   const problematicResolution = Object.entries(
