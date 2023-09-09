@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-from collections import defaultdict
 import hashlib
-from io import BytesIO
 import json
-from pathlib import Path
-import zipfile
-from flask_cors import CORS
-
+import mimetypes
 import shutil
 import time
+import zipfile
+from collections import defaultdict
+from io import BytesIO
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from flask import Flask, make_response, request, send_file, jsonify, redirect, send_from_directory
+import werkzeug.exceptions
+from flask import (Flask, jsonify, make_response, redirect, request, send_file,
+                   send_from_directory)
+from flask_cors import CORS
 
 APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
 
@@ -418,3 +420,47 @@ def cron_form_post():
 @app.route('/jobs/<path:path>', methods=['HEAD', 'OPTIONS', 'GET'])
 def jobs_static(path):
     return send_from_directory('jobs', path)
+
+
+@app.route('/unzip/jobs', methods=['HEAD', 'OPTIONS', 'GET'])
+def unzip_jobs():
+    return jsonify([*map(lambda a: a.name, Path('jobs').iterdir())])
+
+
+@app.route('/unzip/jobs/<path:path>', methods=['HEAD', 'OPTIONS', 'GET'])
+def unzip_jobs_path(path):
+    target_zip = Path('jobs').joinpath(path)
+    if not str(target_zip.resolve()).startswith(str(Path('jobs').resolve())):
+        raise werkzeug.exceptions.NotAcceptable()
+    if not target_zip.exists():
+        raise werkzeug.exceptions.NotFound()
+    if target_zip.is_dir():
+        return jsonify([*map(lambda a: a.name, target_zip.iterdir())])
+    with zipfile.ZipFile(target_zip, mode='r') as zf:
+        return send_file(
+            BytesIO(json.dumps(
+                [i.filename for i in zf.infolist()]).encode('utf-8')),
+            last_modified=target_zip.stat().st_mtime,
+            mimetype='application/json'
+        )
+
+
+@app.route('/unzip/jobs/<path:path>.zip/<path:zippath>', methods=['HEAD', 'OPTIONS', 'GET'])
+def unzip_jobs_path_inner(path, zippath):
+    target_zip = Path('jobs').joinpath(path+'.zip')
+    if not str(target_zip.resolve()).startswith(str(Path('jobs').resolve())):
+        raise werkzeug.exceptions.NotAcceptable()
+    if not target_zip.exists():
+        raise werkzeug.exceptions.NotFound()
+    if zippath in ('', '/'):
+        return unzip_jobs_path(path)
+    with zipfile.ZipFile(target_zip, mode='r') as zf:
+        try:
+            zd = zf.read(zippath)
+        except KeyError:
+            raise werkzeug.exceptions.NotFound()
+        return send_file(
+            BytesIO(zd),
+            last_modified=target_zip.stat().st_mtime,
+            mimetype=mimetypes.guess_type(zippath)[0]
+        )
