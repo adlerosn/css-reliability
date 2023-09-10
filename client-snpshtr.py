@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import subprocess
 import sys
 import traceback
 from typing import Union
@@ -39,6 +40,24 @@ CLS_WEBDRIVER = dict(
 BASEAPI = Path('baseapi.txt').read_text(encoding='utf-8').strip()
 APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
 UPDURL = Path('updurl.txt').read_text(encoding='utf-8').strip()
+
+HOSTNAME = socket.gethostname()
+PLATFORM = sys.platform
+# PLATFORM = 'docker'
+
+
+def get_git_asset_url(fl: str) -> str:
+    return UPDURL.rsplit('/', 1)[0]+'/'+fl
+
+
+def get_content_checking(fl: str) -> bytes:
+    resp = requests.get(fl)
+    resp.raise_for_status()
+    return resp.content
+
+
+def get_git_asset(fl: str) -> bytes:
+    return get_content_checking(get_git_asset_url(fl))
 
 
 def run_hide_scrollbar(browser: WDTP):
@@ -98,14 +117,14 @@ def run_job(browsers: list[WDTP],
                 im = PIL.Image.open(BytesIO(scrsht))
                 if im.size[0] == resw:
                     zf.writestr(
-                        f'{sys.platform}.{socket.gethostname()}.{browser.name}.{resolution_name}.full.png',
+                        f'{PLATFORM}.{HOSTNAME}.{browser.name}.{resolution_name}.full.png',
                         scrsht
                     )
             scrsht = browser.get_screenshot_as_png()
             im = PIL.Image.open(BytesIO(scrsht))
             if im.size == (resw, resh):
                 zf.writestr(
-                    f'{sys.platform}.{socket.gethostname()}.{browser.name}.{resolution_name}.partial.png',
+                    f'{PLATFORM}.{HOSTNAME}.{browser.name}.{resolution_name}.partial.png',
                     scrsht
                 )
             del im
@@ -117,21 +136,126 @@ def run_job(browsers: list[WDTP],
     m.update(b)
     h = m.hexdigest()
     requests.post(
-        f'{BASEAPI}/job?key={APIKEY}&worker={socket.gethostname()}&jobId={jobId}&sha256={h}',
+        f'{BASEAPI}/job?key={APIKEY}&worker={HOSTNAME}&jobId={jobId}&sha256={h}',
         headers={'content-type': 'application/zip',
                  'content-length': str(len(b))},
         data=b).raise_for_status()
-    # Path(f'{sys.platform}.{jobId:012d}.zip').write_bytes(bio.getvalue())
+    # Path(f'{PLATFORM}.{jobId:012d}.zip').write_bytes(bio.getvalue())
     print(f'[INFO] Uploaded results for job {jobId} successfully')
     del zf
     del bio
     del b
 
 
-def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tuple[int, int]]]):
+def initialize_and_run_job(
+    jobId: int,
+    hideScrollbar: bool,
+    wait: float,
+    scrolltoJs: str,
+    scrolltox: int,
+    scrolltoy: int,
+    preRunJs: str,
+    waitJs: float,
+    checkReadyJs: str,
+    url: str,
+):
+    browsers_spec = json.loads(Path(f'browsers.{sys.platform}.json').read_text(
+        encoding='utf-8'))['browsers']
+    resolutions_spec = [
+        (str(n), (int(v.split('x')[0]), int(v.split('x')[1])))
+        for n, v in json.loads(Path('resolutions.json').read_text(
+            encoding='utf-8'))['resolutions']]
+    browsers: list[WDTP] = list()
+    try:
+        for browser_spec in browsers_spec:
+            opt = CLS_OPTIONS[browser_spec['type']]()
+            if os.environ.get('SKIP_ARGS', '') == '':
+                for arg in browser_spec['arguments']:
+                    opt.add_argument(arg)
+            else:
+                opt.headless = False  # type: ignore
+            try:
+                browser = CLS_WEBDRIVER[browser_spec['type']](opt)
+                browsers.append(browser)
+            except Exception:
+                print(
+                    f'[ERROR] Could not initialize browser {browser_spec["type"]}')
+                print(traceback.format_exc())
+        for browser in browsers:
+            browser.get('about:blank')
+        run_job(
+            browsers,
+            resolutions_spec,
+            jobId,
+            hideScrollbar,
+            wait,
+            scrolltoJs,
+            scrolltox,
+            scrolltoy,
+            preRunJs,
+            waitJs,
+            checkReadyJs,
+            url,
+        )
+    finally:
+        for browser in browsers:
+            browser.close()
+
+
+def self_update():
+    global self_update, gather_next_job
+    pss = Path(__file__)
+    try:
+        ncnt = get_git_asset(pss.name)
+        if ncnt != pss.read_bytes():
+            if not Path('.git').exists():
+                pss.write_bytes(ncnt)
+    except Exception:
+        print('[WARN] Could not update')
+        raise
+    importlib.invalidate_caches()
+    selfmodule = importlib.import_module(pss.stem)
+    importlib.reload(selfmodule)
+    gather_next_job = selfmodule.gather_next_job
+    self_update = selfmodule.self_update
+
+
+def subprocess_run_job(
+    jobId: int,
+    hideScrollbar: bool,
+    wait: float,
+    scrolltoJs: str,
+    scrolltox: int,
+    scrolltoy: int,
+    preRunJs: str,
+    waitJs: float,
+    checkReadyJs: str,
+    url: str
+):
+    return subprocess.run([
+        sys.executable, sys.argv[0],
+        str(jobId),
+        str(int(hideScrollbar)),
+        str(wait),
+        str(scrolltoJs),
+        str(scrolltox),
+        str(scrolltoy),
+        str(preRunJs),
+        str(waitJs),
+        str(checkReadyJs),
+        str(url),
+    ],
+        text=True, check=True,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+        stdin=sys.stdin,
+    )
+
+
+def gather_next_job():
     try:
         resp = requests.get(
-            f'{BASEAPI}/job/next?key={APIKEY}&worker={socket.gethostname()}')
+            f'{BASEAPI}/job/next?key={APIKEY}&worker={HOSTNAME}')
     except requests.exceptions.ConnectionError:
         time.sleep(10)
         return
@@ -141,9 +265,7 @@ def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tupl
     elif resp.status_code == 200:
         job = resp.json()
         print(f'[INFO] Running job {job["jobId"]}')
-        run_job(
-            browsers,
-            resolutions_spec,
+        subprocess_run_job(
             job['jobId'],
             bool(job['hideScrollbar']),
             job['wait'],
@@ -155,7 +277,6 @@ def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tupl
             job['checkReadyJs'],
             job['url'],
         )
-        time.sleep(2)
     else:
         try:
             resp.raise_for_status()
@@ -165,59 +286,50 @@ def gather_next_job(browsers: list[WDTP], resolutions_spec: list[tuple[str, tupl
         time.sleep(30)
 
 
-def self_update():
-    global gather_next_job, run_job
-    try:
-        resp = requests.get(UPDURL)
-        resp.raise_for_status()
-        if resp.content != Path('client-snpshtr.py').read_bytes():
-            if not Path('.git').exists():
-                Path('client-snpshtr.py').write_bytes(resp.content)
-    except Exception:
-        print('[WARN] Could not update')
-        raise
-    importlib.invalidate_caches()
-    selfmodule = importlib.import_module('client-snpshtr')
-    importlib.reload(selfmodule)
-    gather_next_job = selfmodule.gather_next_job
-    run_job = selfmodule.run_job
-
-
 def main():
-    browsers_spec = json.loads(Path(f'browsers.{sys.platform}.json').read_text(
-        encoding='utf-8'))['browsers']
-    resolutions_spec = [
-        (str(n), (int(v.split('x')[0]), int(v.split('x')[1])))
-        for n, v in json.loads(Path('resolutions.json').read_text(
-            encoding='utf-8'))['resolutions']]
-    browsers: WDTP = list()
-    try:
-        for browser_spec in browsers_spec:
-            opt = CLS_OPTIONS[browser_spec['type']]()
-            if os.environ.get('SKIP_ARGS', '') == '':
-                for arg in browser_spec['arguments']:
-                    opt.add_argument(arg)
-            else:
-                opt.headless = False
-            try:
-                browser = CLS_WEBDRIVER[browser_spec['type']](opt)
-                browsers.append(browser)
-            except Exception:
-                print(
-                    f'[ERROR] Could not initialize browser {browser_spec["type"]}')
-                print(traceback.format_exc())
-        for browser in browsers:
-            browser.get('about:blank')
-        while len(browsers):
+    if len(sys.argv) == 1:
+        while True:
             try:
                 self_update()
-                gather_next_job(browsers, resolutions_spec)
+                gather_next_job()
             except Exception:
                 print(traceback.format_exc())
-                time.sleep(5)
-    finally:
-        for browser in browsers:
-            browser.close()
+                time.sleep(2)
+    elif len(sys.argv) == 11:
+        [jobId_str,
+         hideScrollbar_str,
+         wait_str,
+         scrolltoJs_str,
+         scrolltox_str,
+         scrolltoy_str,
+         preRunJs_str,
+         waitJs_str,
+         checkReadyJs_str,
+         url_str,] = sys.argv[1:]
+        jobId = int(jobId_str)
+        hideScrollbar = bool(int(hideScrollbar_str))
+        wait = float(wait_str)
+        scrolltoJs = str(scrolltoJs_str)
+        scrolltox = int(float(scrolltox_str))
+        scrolltoy = int(float(scrolltoy_str))
+        preRunJs = str(preRunJs_str)
+        waitJs = float(waitJs_str)
+        checkReadyJs = str(checkReadyJs_str)
+        url = str(url_str)
+        initialize_and_run_job(
+            jobId,
+            hideScrollbar,
+            wait,
+            scrolltoJs,
+            scrolltox,
+            scrolltoy,
+            preRunJs,
+            waitJs,
+            checkReadyJs,
+            url,
+        )
+    else:
+        raise ValueError(f'Wrong number of arguments: {len(sys.argv)}')
 
 
 if __name__ == '__main__':
