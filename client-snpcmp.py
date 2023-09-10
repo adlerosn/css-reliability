@@ -4,6 +4,8 @@
 from concurrent.futures import Future, ProcessPoolExecutor
 import hashlib
 import json
+import subprocess
+import sys
 import pandas
 import importlib
 import socket
@@ -24,6 +26,7 @@ BASEAPI = Path('baseapi.txt').read_text(encoding='utf-8').strip()
 APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
 UPDURL = Path('updurl.txt').read_text(encoding='utf-8').strip()
 
+HOSTNAME = socket.gethostname()
 
 _VT = TypeVar('_VT')
 
@@ -286,17 +289,43 @@ def run_job(
         print(
             f'[DEBUG] About to upload {len(b)/(2**20):.2f} MB for job {jobId}')
         requests.post(
-            f'{BASEAPI}/analysis?key={APIKEY}&worker={socket.gethostname()}&jobId={jobId}&completeness={completeness}&sha256={h}',
+            f'{BASEAPI}/analysis?key={APIKEY}&worker={HOSTNAME}&jobId={jobId}&completeness={completeness}&sha256={h}',
             headers={'content-type': 'application/zip',
                      'content-length': str(len(b))},
             data=b).raise_for_status()
         print(f'[INFO] Uploaded analysis for job {jobId} successfully')
 
 
+def initialize_and_run_job(
+    jobId: int,
+    completeness: int,
+    workers: dict[str, str | None],
+):
+    run_job(jobId, completeness, workers)
+
+
+def subprocess_run_job(
+    jobId: int,
+    completeness: int,
+    workers: dict[str, str | None],
+):
+    return subprocess.run([
+        sys.executable, sys.argv[0],
+        str(jobId),
+        str(completeness),
+        json.dumps(workers),
+    ],
+        text=True, check=True,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+        stdin=sys.stdin,
+    )
+
+
 def gather_next_job():
     try:
         resp = requests.get(
-            f'{BASEAPI}/analysis/next?key={APIKEY}&worker={socket.gethostname()}')
+            f'{BASEAPI}/analysis/next?key={APIKEY}&worker={HOSTNAME}')
     except requests.exceptions.ConnectionError:
         time.sleep(10)
         return
@@ -306,7 +335,7 @@ def gather_next_job():
     elif resp.status_code == 200:
         job = resp.json()
         print(f'[INFO] Running analysis {job["jobId"]}')
-        run_job(
+        subprocess_run_job(
             job['jobId'],
             job['completeness'],
             job['workers'],
@@ -322,30 +351,47 @@ def gather_next_job():
 
 
 def self_update():
-    global gather_next_job, run_job
+    global self_update, gather_next_job
+    pss = Path(__file__)
     try:
-        newscript = get_git_asset('client-snpcmp.py')
-        if newscript != Path('client-snpcmp.py').read_bytes():
+        ncnt = get_git_asset(pss.name)
+        if ncnt != pss.read_bytes():
             if not Path('.git').exists():
-                Path('client-snpcmp.py').write_bytes(newscript)
+                pss.write_bytes(ncnt)
     except Exception:
         print('[WARN] Could not update')
         raise
     importlib.invalidate_caches()
-    selfmodule = importlib.import_module('client-snpcmp')
+    selfmodule = importlib.import_module(pss.stem)
     importlib.reload(selfmodule)
     gather_next_job = selfmodule.gather_next_job
-    run_job = selfmodule.run_job
+    self_update = selfmodule.self_update
 
 
 def main():
-    while True:
-        try:
-            self_update()
-            gather_next_job()
-        except Exception:
-            print(traceback.format_exc())
-            time.sleep(5)
+    if len(sys.argv) == 1:
+        while True:
+            try:
+                self_update()
+                gather_next_job()
+            except Exception:
+                print(traceback.format_exc())
+                time.sleep(2)
+    elif len(sys.argv) == 4:
+        [jobId_str,
+         completeness_str,
+         workers_str,] = sys.argv[1:]
+        jobId = int(jobId_str)
+        completeness = int(completeness_str)
+        workers: dict[str, str | None] = json.loads(  # type: ignore
+            workers_str)
+        initialize_and_run_job(
+            jobId,
+            completeness,
+            workers,
+        )
+    else:
+        raise ValueError(f'Wrong number of arguments: {len(sys.argv)}')
 
 
 if __name__ == '__main__':
