@@ -107,39 +107,41 @@ export default function StatusPage() {
             {Object.entries(cronJobs).map(([k, vs]) => (
               <tr key={k}>
                 <th>#{k}</th>
-                {countUntil(maxSampleCount).map((i) => (
-                  <td
-                    key={`${k}-${i}`}
-                    style={{
-                      backgroundColor:
-                        analysiss[vs[i]] === undefined
-                          ? "#808080"
-                          : analysisObj[vs[i]]?.completeness === 0
-                          ? "#CCCCCC"
-                          : analysiss[vs[i]] === false
-                          ? "#FFFFBB"
-                          : analysiss[vs[i]] === true
-                          ? analysisObj[vs[i]]?.completeness ===
-                            screenshooters.length
-                            ? "#BBFFBB"
-                            : "#CCCCFF"
-                          : undefined,
-                    }}
-                  >
-                    {analysiss[vs[i]] !== undefined && (
-                      <>
-                        {analysiss[vs[i]] === true
-                          ? "\u2611"
-                          : analysiss[vs[i]] === false
-                          ? "\u2612"
-                          : "\u2610"}{" "}
-                        {analysisObj[vs[i]]?.completeness}/
-                        {screenshooters.length}
-                        <br />#{vs[i]}
-                      </>
-                    )}
-                  </td>
-                ))}
+                {countUntil(maxSampleCount).map((i) => {
+                  return (
+                    <td
+                      key={`${k}-${i}`}
+                      style={{
+                        backgroundColor:
+                          analysiss[vs[i]] === undefined
+                            ? "#808080"
+                            : analysisObj[vs[i]]?.completeness === 0
+                            ? "#CCCCCC"
+                            : analysiss[vs[i]] === false
+                            ? "#FFFFBB"
+                            : analysiss[vs[i]] === true
+                            ? analysisObj[vs[i]]?.completeness ===
+                              screenshooters.length
+                              ? "#BBFFBB"
+                              : "#CCCCFF"
+                            : undefined,
+                      }}
+                    >
+                      {analysiss[vs[i]] !== undefined && (
+                        <>
+                          {analysiss[vs[i]] === true
+                            ? "\u2611"
+                            : analysiss[vs[i]] === false
+                            ? "\u2612"
+                            : "\u2610"}{" "}
+                          {analysisObj[vs[i]]?.completeness ?? "?"}/
+                          {screenshooters.length}
+                          <br />#{vs[i]}
+                        </>
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
