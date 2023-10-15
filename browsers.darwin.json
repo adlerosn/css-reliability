@@ -1,6 +1,16 @@
 {
   "browsers": [
     {
+      "type": "Firefox",
+      "variant": "desktop",
+      "arguments": ["-headless"]
+    },
+    {
+      "type": "Chrome",
+      "variant": "desktop",
+      "arguments": ["--headless"]
+    },
+    {
       "type": "Safari",
       "variant": "desktop",
       "arguments": ["-headless"]
