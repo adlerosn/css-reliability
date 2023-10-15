@@ -46,6 +46,10 @@ HOSTNAME = socket.gethostname()
 PLATFORM = sys.platform
 # PLATFORM = 'docker'
 
+if Path('hostname_override.txt').is_file():
+    HOSTNAME = Path('hostname_override.txt').read_text(
+        encoding='utf-8').strip()
+
 
 def get_git_asset_url(fl: str) -> str:
     return UPDURL.rsplit('/', 1)[0]+'/'+fl

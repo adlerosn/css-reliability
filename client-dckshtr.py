@@ -24,6 +24,10 @@ APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
 UPDURL = Path('updurl.txt').read_text(encoding='utf-8').strip()
 
 HOSTNAME = socket.gethostname()
+HOSTNAME = {'linux-docker': 'snpshtr-docker'}.get(HOSTNAME, HOSTNAME)
+if Path('hostname_override.txt').is_file():
+    HOSTNAME = Path('hostname_override.txt').read_text(
+        encoding='utf-8').strip()
 # PLATFORM = sys.platform
 PLATFORM = 'docker'
 

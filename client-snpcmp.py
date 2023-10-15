@@ -27,6 +27,9 @@ APIKEY = Path('apikey.txt').read_text(encoding='utf-8').strip()
 UPDURL = Path('updurl.txt').read_text(encoding='utf-8').strip()
 
 HOSTNAME = socket.gethostname()
+if Path('hostname_override.txt').is_file():
+    HOSTNAME = Path('hostname_override.txt').read_text(
+        encoding='utf-8').strip()
 
 _VT = TypeVar('_VT')
 
