@@ -139,11 +139,15 @@ def run_job(browsers: list[WDTP],
     m = hashlib.sha256()
     m.update(b)
     h = m.hexdigest()
-    requests.post(
+    resp = requests.post(
         f'{BASEAPI}/job?key={APIKEY}&worker={HOSTNAME}&jobId={jobId}&sha256={h}',
         headers={'content-type': 'application/zip',
                  'content-length': str(len(b))},
-        data=b).raise_for_status()
+        data=b)
+    if resp.status_code != 200:
+        print(
+            f'[FATAL] Could not upload, got {resp.status_code}:\n{resp.text}')
+    resp.raise_for_status()
     # Path(f'{PLATFORM}.{jobId:012d}.zip').write_bytes(bio.getvalue())
     print(f'[INFO] Uploaded results for job {jobId} successfully')
     del zf
