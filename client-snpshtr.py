@@ -17,6 +17,7 @@ import requests
 from selenium import webdriver
 import time
 import zipfile
+from selenium.common.exceptions import WebDriverException
 
 
 TEST_W, TEST_H = 800, 600
@@ -113,13 +114,16 @@ def run_job(browsers: list[WDTP],
                 run_hide_scrollbar(browser)
             time.sleep(wait)
             if hasattr(browser, 'get_full_page_screenshot_as_png'):
-                scrsht = browser.get_full_page_screenshot_as_png()
-                im = PIL.Image.open(BytesIO(scrsht))
-                if im.size[0] == resw:
-                    zf.writestr(
-                        f'{PLATFORM}.{HOSTNAME}.{browser.name}.{resolution_name}.full.png',
-                        scrsht
-                    )
+                try:
+                    scrsht = browser.get_full_page_screenshot_as_png()
+                    im = PIL.Image.open(BytesIO(scrsht))
+                    if im.size[0] == resw:
+                        zf.writestr(
+                            f'{PLATFORM}.{HOSTNAME}.{browser.name}.{resolution_name}.full.png',
+                            scrsht
+                        )
+                except WebDriverException as e:
+                    print(f'[WARN] Ignoring full screenshot: {e}')
             scrsht = browser.get_screenshot_as_png()
             im = PIL.Image.open(BytesIO(scrsht))
             if im.size == (resw, resh):
